@@ -55,7 +55,7 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
   const svgRef = useRef<SVGSVGElement>(null);
   const bodiesRef = useRef<ForceBody[]>([]);
   const dragRef = useRef<{ id: string; moved: boolean } | null>(null);
-  const [size, setSize] = useState({ width: 360, height: 280 });
+  const [size, setSize] = useState({ width: 360, height: 200 });
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const topicKey = topics.map((entry) => `${entry.id}:${entry.weight}`).join("|");
@@ -67,7 +67,7 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
     const measure = () => {
       const width = frame.clientWidth;
       if (width < 40) return;
-      setSize({ width, height: 312 });
+      setSize({ width, height: 200 });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -170,9 +170,7 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
 
   if (topics.length === 0) {
     return (
-      <p className="atlas-memory-empty">
-        Nothing in this window yet. Open a wider one to see the Node’s memory.
-      </p>
+      <p className="atlas-memory-empty">Nothing in this window.</p>
     );
   }
 
@@ -184,7 +182,7 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
           className="atlas-memory-graph__svg"
           viewBox={`0 0 ${size.width} ${size.height}`}
           role="group"
-          aria-label="Memory graph. Drag a topic, or select it to see when it appeared."
+          aria-label="Topics, hard problems, and terms from this window"
           onPointerMove={(event) => {
             if (!dragRef.current) return;
             if (Math.hypot(event.movementX, event.movementY) > 0) dragRef.current.moved = true;
@@ -216,12 +214,8 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
              * At rest, name the bridges and anything small enough to read.
              * Hover and selection bring the neighbours’ names out with them.
              */
-            const showLabel =
-              topics.length <= 12 ||
-              entry.sharedWith.length > 0 ||
-              entry.id === hoveredId ||
-              entry.id === selectedId ||
-              (focusId != null && (neighborhood?.has(entry.id) ?? false));
+            const labelId = hoveredId ?? selectedId;
+            const showLabel = entry.id === labelId;
             const radius = topicRadius(entry.weight);
             return (
               <g
@@ -271,7 +265,7 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
         <li><i className="is-topic" /> Topic</li>
         <li><i className="is-problem" /> Hard problem</li>
         <li><i className="is-term" /> Emerging term</li>
-        <li><i className="is-shared" /> Shared with another node</li>
+        <li><i className="is-shared" /> Shared</li>
       </ul>
       <div className="atlas-memory-detail" aria-live="polite">
         {selected ? (
@@ -281,17 +275,13 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
             <p>
               {selected.weight} {selected.weight === 1 ? "conversation" : "conversations"}
               {" · "}
-              first appeared {formatMemoryDate(selected.firstSeen)}
-            </p>
-            <p>
+              {formatMemoryDate(selected.firstSeen)}
               {selected.sharedWith.length > 0
-                ? `Also alive at ${selected.sharedWith.map((id) => memoryPlaceName(id)).join(" and ")}.`
-                : "Only at this Node, so far."}
+                ? ` · ${selected.sharedWith.map((id) => memoryPlaceName(id)).join(", ")}`
+                : ""}
             </p>
           </>
-        ) : (
-          <p>Select a topic. Drag it if the labels sit on each other.</p>
-        )}
+        ) : null}
       </div>
     </div>
   );

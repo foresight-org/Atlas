@@ -1,9 +1,6 @@
 /**
- * Nested windows over one Node.
- *
- * A conversation sits inside an event (a salon, sometimes several days).
- * Events sit inside a week and a month. All time is the Node’s memory
- * as it stands. The graph follows the window. The insights do not.
+ * All time, a month, a week, one event, or one conversation.
+ * The graph and the hard problems follow the window.
  */
 
 import type { NodeGraph } from "../../types/nodeMemory";
@@ -55,14 +52,10 @@ export function MemoryScopeControl({
           </button>
         ))}
       </div>
-      <p className="atlas-memory-scope__window">
-        Showing <strong>{windowLabel}</strong>
-        <span> · sample clock, through 13 Nov 2026</span>
-      </p>
+      {kind !== "all" ? <p className="atlas-memory-scope__window">{windowLabel}</p> : null}
       {kind === "event" ? (
         <label className="atlas-memory-scope__pick">
-          <span>Event</span>
-          <select value={eventId} onChange={(event) => onEvent(event.target.value)}>
+          <select aria-label="Event" value={eventId} onChange={(event) => onEvent(event.target.value)}>
             {graph.events.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.label}
@@ -73,8 +66,11 @@ export function MemoryScopeControl({
       ) : null}
       {kind === "conversation" ? (
         <label className="atlas-memory-scope__pick">
-          <span>Conversation</span>
-          <select value={conversationId} onChange={(event) => onConversation(event.target.value)}>
+          <select
+            aria-label="Conversation"
+            value={conversationId}
+            onChange={(event) => onConversation(event.target.value)}
+          >
             {graph.conversations.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.label} · {formatMemoryDate(entry.at)}
@@ -83,9 +79,6 @@ export function MemoryScopeControl({
           </select>
         </label>
       ) : null}
-      <p className="atlas-memory-scope__note">
-        A salon holds several conversations. They fold into the event, then the week, the month, and the Node’s memory.
-      </p>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { memoryGraph } from "../../data/nodeMemory.sample";
 import type { MemoryPlace } from "../../types/nodeMemory";
+import { HardProblems } from "./HardProblems";
 import { InsightCards } from "./InsightCards";
 import { KnowledgeGraph } from "./KnowledgeGraph";
 import { MemoryScopeControl } from "./MemoryScopeControl";
@@ -41,7 +42,6 @@ export function NodeMemoryPanel({ place, onClose }: NodeMemoryPanelProps) {
     setKind("all");
     setEventId(graph.events[graph.events.length - 1]?.id ?? "");
     setConversationId(graph.conversations[graph.conversations.length - 1]?.id ?? "");
-    setSelectedTopicId(null);
     rootRef.current?.focus({ preventScroll: true });
   }, [place.id, graph]);
 
@@ -69,6 +69,18 @@ export function NodeMemoryPanel({ place, onClose }: NodeMemoryPanelProps) {
     [graph, scope],
   );
 
+  const problems = useMemo(
+    () =>
+      (projected?.topics ?? [])
+        .filter((topic) => topic.kind === "problem")
+        .sort((a, b) => b.weight - a.weight),
+    [projected],
+  );
+
+  useEffect(() => {
+    setSelectedTopicId(problems[0]?.id ?? null);
+  }, [place.id, kind, eventId, conversationId, problems]);
+
   if (!graph || !projected) return null;
 
   return (
@@ -92,8 +104,18 @@ export function NodeMemoryPanel({ place, onClose }: NodeMemoryPanelProps) {
           {place.name}
         </h2>
         <p className="atlas-node-memory__summary">{place.summary}</p>
-        <p className="atlas-node-memory__steward">{place.stewardship}</p>
       </header>
+
+      <section aria-labelledby="node-problems-title">
+        <h3 id="node-problems-title" className="font-heading">
+          Hard problems
+        </h3>
+        <HardProblems
+          problems={problems}
+          selectedId={selectedTopicId}
+          onSelect={(id) => setSelectedTopicId((current) => (current === id ? null : id))}
+        />
+      </section>
 
       <MemoryScopeControl
         graph={graph}
@@ -106,18 +128,12 @@ export function NodeMemoryPanel({ place, onClose }: NodeMemoryPanelProps) {
         onConversation={setConversationId}
       />
 
-      <section className="atlas-node-memory__graph" aria-labelledby="node-memory-graph-title">
-        <h3 id="node-memory-graph-title">Memory</h3>
-        <p className="atlas-node-memory__lede">
-          Topics, hard problems, and terms from consented conversations. Shared marks are the bridges to other nodes.
-        </p>
-        <KnowledgeGraph
-          topics={projected.topics}
-          edges={projected.edges}
-          selectedId={selectedTopicId}
-          onSelect={setSelectedTopicId}
-        />
-      </section>
+      <KnowledgeGraph
+        topics={projected.topics}
+        edges={projected.edges}
+        selectedId={selectedTopicId}
+        onSelect={setSelectedTopicId}
+      />
 
       <PipelineStrip />
       <InsightCards insights={graph.insights} />

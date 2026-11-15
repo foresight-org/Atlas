@@ -207,20 +207,20 @@ const BERLIN: NodeGraph = graph(
     {
       type: "emerging_term",
       title: "Attested inference",
-      body: "The phrase showed up at the November salon and was not in the October room. People are using it for inference where the machine can show what actually ran.",
+      body: "New at the November salon. The machine can show what actually ran.",
     },
     {
       type: "bridge",
       title: "Confidential inference",
       toNode: "sf",
       topic: "confidential-inference",
-      body: "San Francisco is circling the same problem in different words. A joint salon would put the two vocabularies in one room before they harden apart.",
+      body: "Same problem, different words.",
     },
     {
       type: "intro",
       title: "A cryptographer and a biologist",
       roles: ["cryptographer", "biologist"],
-      body: "Both are stuck on how to share a result without sharing the sample. An introduction would unblock the pair. This prototype names roles, never people.",
+      body: "Both stuck on sharing a result without the sample.",
     },
   ],
 );
@@ -276,20 +276,20 @@ const SAN_FRANCISCO: NodeGraph = graph(
     {
       type: "emerging_term",
       title: "Proof-carrying result",
-      body: "New at the November bridge salon. A result that travels with evidence of how it was produced, so another Node can trust it without the raw material.",
+      body: "New this month. A result that travels with its proof.",
     },
     {
       type: "bridge",
       title: "Neurotech readouts",
       toNode: "berlin",
       topic: "neurotech-readouts",
-      body: "Berlin’s bio corner and this lab night are on the same readout problem. A shared hour would show whether the stuck point is the same one.",
+      body: "Berlin is on the same readout.",
     },
     {
       type: "intro",
       title: "A hardware engineer and a security reviewer",
       roles: ["hardware engineer", "security reviewer"],
-      body: "One is building the enclave, the other is blocking on what it can actually prove. They are in the same salon and have not sat down together.",
+      body: "The enclave and the review are the same stuck point.",
     },
   ],
 );
@@ -339,20 +339,20 @@ const CAPE_TOWN: NodeGraph = graph(
     {
       type: "emerging_term",
       title: "Dry compute",
-      body: "Coined at the 14 November table. Compute planned around water, not assumed to have it. It was not in the October circle.",
+      body: "New on 14 November. Compute planned around water.",
     },
     {
       type: "bridge",
       title: "Water and compute",
       toNode: "berlin",
       topic: "water-and-compute",
-      body: "Berlin’s compute closet has started using the same pairing. Cape Town is further along. A joint hour would move the vocabulary, not just the anecdote.",
+      body: "Berlin has started using the same pairing.",
     },
     {
       type: "intro",
       title: "A climate modeller and a systems engineer",
       roles: ["climate modeller", "systems engineer"],
-      body: "The modeller has the water constraint. The engineer has the training schedule. They are treating them as separate problems.",
+      body: "The water constraint and the training schedule are one problem.",
     },
   ],
 );

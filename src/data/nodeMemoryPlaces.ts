@@ -27,7 +27,7 @@ export const MEMORY_PLACES: MemoryPlace[] = [
     kind: "node",
     lon: -122.4194,
     lat: 37.7749,
-    summary: "Bay Area node. Salons, labs, and the other half of several Berlin conversations.",
+    summary: "Salons, labs, and shared work with Berlin.",
     stewardship:
       "Kept by Foresight. Shaped so the pipeline can run on this Node’s own compute.",
   },
@@ -37,7 +37,7 @@ export const MEMORY_PLACES: MemoryPlace[] = [
     kind: "affiliate",
     lon: 18.4241,
     lat: -33.9249,
-    summary: "Affiliate node. Its own room, its own machines, a memory the whole community can read.",
+    summary: "Its own room and its own machines.",
     stewardship:
       "Affiliate. Capture through graph runs on Cape Town’s own compute. Atlas holds the memory members can read.",
   },
