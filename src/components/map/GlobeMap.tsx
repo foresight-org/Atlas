@@ -33,6 +33,8 @@ import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 
 setWorkerUrl(maplibreWorkerUrl);
 import { MaplibreStarfieldLayer } from "@geoql/maplibre-gl-starfield";
+import type { MemoryArc, MemoryPlace } from "../../types/nodeMemory";
+import { mountNodeMemoryLayer, type NodeMemoryLayer } from "./nodeMemoryLayer";
 import { RoleType } from "../../types";
 import { effectiveIsAlumni } from "../../utils/cohortLabel";
 import {
@@ -105,7 +107,31 @@ interface GlobeMapProps {
    * Person clicks are ignored even if synthetic ids exist on the markers.
    */
   showcase?: boolean;
+  /**
+   * People is the directory. Nodes fades those pins and draws memory arcs
+   * on this same globe. Omitted on the public teaser, which stays people.
+   */
+  surface?: "people" | "nodes";
+  memoryPlaces?: readonly MemoryPlace[];
+  memoryArcs?: readonly MemoryArc[];
+  selectedMemoryId?: string | null;
+  onMemorySelect?: (id: string) => void;
+  onMemoryClear?: () => void;
 }
+
+const EMPTY_PINS: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+const EMPTY_PLACES: readonly MemoryPlace[] = [];
+const EMPTY_ARCS: readonly MemoryArc[] = [];
+
+interface GlobeCamera {
+  lookAt: (lng: number, lat: number) => void;
+  release: () => void;
+}
+
+const IDLE_CAMERA: GlobeCamera = {
+  lookAt() {},
+  release() {},
+};
 
 function pinFeatureCollection(markers: PinLocation[]): GeoJSON.FeatureCollection {
   return {
@@ -181,6 +207,12 @@ export function GlobeMap({
   onPersonClick,
   onUnavailable,
   showcase = false,
+  surface = "people",
+  memoryPlaces = EMPTY_PLACES,
+  memoryArcs = EMPTY_ARCS,
+  selectedMemoryId = null,
+  onMemorySelect,
+  onMemoryClear,
 }: GlobeMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -193,7 +225,14 @@ export function GlobeMap({
   const introCompleteRef = useRef(prefersReducedMotion());
   /** Stops the idle rAF spin before any programmatic easeTo/flyTo (avoids MapLibre ease races). */
   const stopIdleSpinRef = useRef<() => void>(() => {});
+  const globeCameraRef = useRef<GlobeCamera>(IDLE_CAMERA);
+  const onMemorySelectRef = useRef(onMemorySelect);
+  const onMemoryClearRef = useRef(onMemoryClear);
+  const memoryHeldRef = useRef<string | null>(null);
+  const memoryLayerRef = useRef<NodeMemoryLayer | null>(null);
   const [ready, setReady] = useState(false);
+  onMemorySelectRef.current = onMemorySelect;
+  onMemoryClearRef.current = onMemoryClear;
 
   markersRef.current = markers;
   onMarkerClickRef.current = onMarkerClick;
@@ -368,8 +407,9 @@ export function GlobeMap({
       spinRaf = requestAnimationFrame(tickSpin);
     };
 
+    let holdSpin = false;
     const startSpinLoop = () => {
-      if (!spinEnabled || userInteracting || introRunning || programmaticCamera || spinRaf) return;
+      if (holdSpin || !spinEnabled || userInteracting || introRunning || programmaticCamera || spinRaf) return;
       lastSpinTs = 0;
       spinRaf = requestAnimationFrame(tickSpin);
     };
@@ -395,6 +435,50 @@ export function GlobeMap({
     };
 
     /** Fly/ease without the idle spin stomping the animation; run `after` on settle. */
+    let nodeCameraGeneration = 0;
+    const runNodeCamera = (move: () => void) => {
+      const generation = ++nodeCameraGeneration;
+      stopSpinLoop();
+      userInteracting = true;
+      programmaticCamera = true;
+      introRunning = false;
+      introCompleteRef.current = true;
+      map.once("moveend", () => {
+        if (generation !== nodeCameraGeneration) return;
+        programmaticCamera = false;
+        userInteracting = false;
+        startSpinLoop();
+      });
+      move();
+    };
+    globeCameraRef.current = {
+      lookAt(lng, lat) {
+        holdSpin = true;
+        const duration = reduceMotion ? 0 : 1200;
+        runNodeCamera(() => {
+          map.flyTo({
+            center: [lng, lat],
+            zoom: 2.15,
+            duration,
+            essential: true,
+          });
+        });
+      },
+      release() {
+        holdSpin = false;
+        const box = map.getContainer().getBoundingClientRect();
+        const duration = reduceMotion ? 0 : 900;
+        runNodeCamera(() => {
+          map.easeTo({
+            center: GLOBE_HOME_CENTER,
+            zoom: globeHomeZoom(box.width, box.height),
+            duration,
+            easing: (t) => 1 - (1 - t) ** 2.2,
+          });
+        });
+      },
+    };
+
     const runCameraMove = (move: () => void, after?: () => void) => {
       stopSpinLoop();
       userInteracting = true;
@@ -1006,6 +1090,7 @@ export function GlobeMap({
       introRunning = false;
       stopSpinLoop();
       stopIdleSpinRef.current = () => {};
+      globeCameraRef.current = IDLE_CAMERA;
       if (frame) cancelAnimationFrame(frame);
       cancelClose();
       resizeObserver.disconnect();
@@ -1027,12 +1112,23 @@ export function GlobeMap({
      * A source with setData is the GeoJSON source we added.
      */
     if (!source || typeof source.setData !== "function") return;
-    source.setData(pinFeatureCollection(markers));
-  }, [markers, ready]);
+    if (surface !== "nodes") {
+      source.setData(pinFeatureCollection(markers));
+      return;
+    }
+    /*
+     * Leave the pins in place for a beat so the fade can be seen, then drop
+     * them. While they fade they ignore hits (see the surface attribute).
+     */
+    const timeout = window.setTimeout(() => {
+      source.setData(EMPTY_PINS);
+    }, prefersReducedMotion() ? 0 : 460);
+    return () => window.clearTimeout(timeout);
+  }, [markers, ready, surface]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map || skipIfMarkerSelected) return;
+    if (!ready || !map || skipIfMarkerSelected || surface === "nodes") return;
 
     const shouldFit =
       isMobile && markers.length > 0 && markers.length <= MOBILE_FIT_MARKERS_THRESHOLD;
@@ -1067,22 +1163,22 @@ export function GlobeMap({
     const bounds = new LngLatBounds();
     markers.forEach((marker) => bounds.extend([marker.coordinates.lng, marker.coordinates.lat]));
     map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });
-  }, [ready, markers, isMobile, skipIfMarkerSelected]);
+  }, [ready, markers, isMobile, skipIfMarkerSelected, surface]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map || !selectedMarker || !selectedMarkerFromList) return;
+    if (!ready || !map || surface === "nodes" || !selectedMarker || !selectedMarkerFromList) return;
     stopIdleSpinRef.current();
     map.flyTo({
       center: [selectedMarker.coordinates.lng, selectedMarker.coordinates.lat],
       zoom: Math.max(8, map.getZoom()),
       duration: 500,
     });
-  }, [ready, selectedMarker, selectedMarkerFromList]);
+  }, [ready, selectedMarker, selectedMarkerFromList, surface]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map || !previewMarker || isMobile) return;
+    if (!ready || !map || surface === "nodes" || !previewMarker || isMobile) return;
     /* Don't fight a deliberate list click fly-to. */
     if (selectedMarkerFromList && selectedMarker) return;
     stopIdleSpinRef.current();
@@ -1093,7 +1189,46 @@ export function GlobeMap({
       duration: 900,
       easing: (t) => 1 - (1 - t) ** 2.2,
     });
-  }, [ready, previewMarker, isMobile, selectedMarker, selectedMarkerFromList]);
+  }, [ready, previewMarker, isMobile, selectedMarker, selectedMarkerFromList, surface]);
 
-  return <div ref={containerRef} className="atlas-globe-map" />;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || surface !== "nodes") return;
+    const layer = mountNodeMemoryLayer(map, memoryPlaces, memoryArcs, {
+      onSelect: (id) => onMemorySelectRef.current?.(id),
+      onClear: () => onMemoryClearRef.current?.(),
+    });
+    memoryLayerRef.current = layer;
+    layer.setSelected(memoryHeldRef.current);
+    return () => {
+      layer.destroy();
+      if (memoryLayerRef.current === layer) memoryLayerRef.current = null;
+    };
+  }, [ready, surface, memoryPlaces, memoryArcs]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (surface !== "nodes") {
+      if (memoryHeldRef.current) {
+        memoryHeldRef.current = null;
+        globeCameraRef.current.release();
+      }
+      return;
+    }
+    const place = memoryPlaces.find((entry) => entry.id === selectedMemoryId && entry.kind !== "conversation");
+    const nextId = place?.id ?? null;
+    memoryLayerRef.current?.setSelected(nextId);
+    if (place) {
+      if (memoryHeldRef.current === place.id) return;
+      memoryHeldRef.current = place.id;
+      globeCameraRef.current.lookAt(place.lon, place.lat);
+      return;
+    }
+    if (memoryHeldRef.current) {
+      memoryHeldRef.current = null;
+      globeCameraRef.current.release();
+    }
+  }, [ready, surface, selectedMemoryId, memoryPlaces]);
+
+  return <div ref={containerRef} className="atlas-globe-map" data-surface={surface} />;
 }

@@ -34,6 +34,10 @@ import {
   type MapProjection,
 } from "./map/globeMapFlag";
 import { MapProjectionToggle } from "./map/MapProjectionToggle";
+import { AtlasSurfaceToggle, type AtlasSurface } from "./nodes/AtlasSurfaceToggle";
+import { NodeLegend } from "./nodes/NodeLegend";
+import { NodeMemoryPanel } from "./nodes/NodeMemoryPanel";
+import { MEMORY_PLACES, MEMORY_ARCS } from "../data/nodeMemoryPlaces";
 import {
   buildPopupHtml,
   clusterBadgeHtml,
@@ -666,6 +670,9 @@ export function MapView({
   const [hoverPersonId, setHoverPersonId] = useState<string | null>(null);
   const [previewMarker, setPreviewMarker] = useState<MarkerData | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  /** People is the directory. Nodes is the same globe, with memory instead of pins. */
+  const [surface, setSurface] = useState<AtlasSurface>("people");
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   /** Filter section expanded state; collapse when user selects a map node so the person list is visible. */
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const isMobile = useIsMobile();
@@ -692,6 +699,39 @@ export function MapView({
 
   // Keep refs to each person card so we can scroll them into view
   const personRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const selectedPlace = useMemo(
+    () => MEMORY_PLACES.find((place) => place.id === selectedPlaceId && place.kind !== "conversation") ?? null,
+    [selectedPlaceId],
+  );
+
+  const chooseSurface = useCallback((next: AtlasSurface) => {
+    setSurface(next);
+    if (next === "nodes") {
+      setIsSidebarOpen(false);
+      setSelectedMarker(null);
+      setSelectedMarkerFromList(false);
+      setSelectedPerson(null);
+      setHoverPersonId(null);
+      setPreviewMarker(null);
+      if (globeAvailable && !globeFailed && projection !== "globe") {
+        setProjection("globe");
+        writeMapProjection("globe");
+      }
+      return;
+    }
+    setSelectedPlaceId(null);
+    if (!isMobile) setIsSidebarOpen(true);
+  }, [globeAvailable, globeFailed, isMobile, projection]);
+
+  const closeMemory = useCallback(() => {
+    const id = selectedPlaceId;
+    setSelectedPlaceId(null);
+    if (!id) return;
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(`.atlas-memory-pin[data-place-id="${CSS.escape(id)}"]`)?.focus();
+    });
+  }, [selectedPlaceId]);
 
   // On mobile, default to map-first experience with the list hidden
   useEffect(() => {
@@ -1161,6 +1201,12 @@ export function MapView({
                 setProjection("flat");
                 writeMapProjection("flat");
               }}
+              surface={surface}
+              memoryPlaces={MEMORY_PLACES}
+              memoryArcs={MEMORY_ARCS}
+              selectedMemoryId={selectedPlaceId}
+              onMemorySelect={setSelectedPlaceId}
+              onMemoryClear={closeMemory}
             />
           </Suspense>
         ) : (
@@ -1205,8 +1251,30 @@ export function MapView({
           <MapProjectionToggle mode={showGlobe ? "globe" : "flat"} onChange={chooseProjection} />
         )}
 
+        <AtlasSurfaceToggle surface={surface} onChange={chooseSurface} />
+        {surface === "nodes" ? <NodeLegend /> : null}
+        {surface === "nodes" && !showGlobe ? (
+          <div className="atlas-node-fallback">
+            <p>The node view is drawn on the globe. This browser couldn’t start it.</p>
+            <ul>
+              {MEMORY_PLACES.filter((place) => place.kind !== "conversation").map((place) => (
+                <li key={place.id}>
+                  <button type="button" onClick={() => setSelectedPlaceId(place.id)}>
+                    {place.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {surface === "nodes" && isMobile && selectedPlace ? (
+          <div className="atlas-node-sheet">
+            <NodeMemoryPanel place={selectedPlace} onClose={closeMemory} />
+          </div>
+        ) : null}
+
         {/* Empty state overlay when we have people but no marker coords yet (e.g. still geocoding) or no one matches filters */}
-        {markers.length === 0 && (
+        {surface === "people" && markers.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none bg-white/90 rounded-xl">
             <p className="text-gray-600 font-medium">
               {filteredPeople.length === 0
@@ -1224,7 +1292,7 @@ export function MapView({
         )}
 
         {/* Sidebar toggle - always visible, prominent button in top-right of map — above header/menus */}
-        {!isMobile && (
+        {!isMobile && surface === "people" && (
           <div 
             className="absolute top-4 right-4 pointer-events-auto"
             style={{ 
@@ -1263,7 +1331,7 @@ export function MapView({
       </div>
 
       {/* Mobile: open list button - above header/hamburger so always tappable */}
-      {isMobile && !isSidebarOpen && (
+      {isMobile && !isSidebarOpen && surface === "people" && (
         <div 
           className="absolute pointer-events-auto" 
           style={{ 
@@ -1288,7 +1356,7 @@ export function MapView({
       )}
 
       {/* Fellows & Grantees List - desktop sidebar */}
-      {!isMobile && isSidebarOpen && (
+      {!isMobile && isSidebarOpen && surface === "people" && (
         <div
           ref={sidebarRef}
           className={cn(
@@ -1372,7 +1440,13 @@ export function MapView({
       )}
 
       {/* Mobile: full-screen fellows sheet — above header/hamburger so list is on top */}
-      {isMobile && isSidebarOpen && (
+      {!isMobile && surface === "nodes" && selectedPlace ? (
+        <div className="atlas-node-column">
+          <NodeMemoryPanel place={selectedPlace} onClose={closeMemory} />
+        </div>
+      ) : null}
+
+      {isMobile && isSidebarOpen && surface === "people" && (
         <div className="fixed inset-0 bg-white flex flex-col shadow-2xl min-h-0" style={{ zIndex: Z_INDEX_MOBILE_SIDEBAR_SHEET }}>
           {/* Title + menu on one row — Back to map lives beside Filters below */}
           <header
