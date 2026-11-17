@@ -1,7 +1,6 @@
 /**
  * Three short notices.
- * An introduction can name a person because the viewer is signed in.
- * The conversation that produced the match stays at the other Node.
+ * An introduction is for the signed-in person, from a conversation they were in.
  */
 
 import { memoryPlaceName } from "../../data/nodeMemoryPlaces";
@@ -11,7 +10,7 @@ import type { MemoryInsight } from "../../types/nodeMemory";
 const KICKER = {
   emerging_term: "Emerging term",
   bridge: "Bridge",
-  intro: "Who should talk",
+  intro: "Who you should talk to",
 } as const;
 
 export function InsightCards({ insights }: { insights: MemoryInsight[] }) {

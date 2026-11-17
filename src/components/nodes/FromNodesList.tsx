@@ -11,7 +11,7 @@ export function FromNodesList() {
     <div className="mx-auto max-w-2xl">
       <p className="mb-4 text-sm leading-relaxed text-gray-600">
         <span className="font-medium text-gray-800">Prototype. Sample data only.</span>{" "}
-        A signed-in member sees the person. The conversation stays at the Node.
+        Who you should talk to, from conversations you were in.
       </p>
       <ul className="space-y-3">
         {NODE_RECOMMENDATIONS.map((recommendation) => (

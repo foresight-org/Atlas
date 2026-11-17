@@ -221,7 +221,7 @@ const BERLIN: NodeGraph = graph(
       title: "Leah Okonkwo",
       recommendationId: "leah-okonkwo",
       roles: ["cryptographer"],
-      body: "Zero-knowledge match. The proof names her. The conversation stays in San Francisco.",
+      body: "From a conversation you were in on confidential inference. She is on it in San Francisco.",
     },
   ],
 );
@@ -291,7 +291,7 @@ const SAN_FRANCISCO: NodeGraph = graph(
       title: "Jonas Keller",
       recommendationId: "jonas-keller",
       roles: ["biologist"],
-      body: "Zero-knowledge match. The proof names him. The conversation stays in Berlin.",
+      body: "From a conversation you were in on neurotech readouts. He is on it in Berlin.",
     },
   ],
 );
@@ -355,7 +355,7 @@ const CAPE_TOWN: NodeGraph = graph(
       title: "Amira Hassan",
       recommendationId: "amira-hassan",
       roles: ["systems engineer"],
-      body: "Zero-knowledge match. The proof names her. The conversation stays in Berlin.",
+      body: "From a conversation you were in on water and compute. She is on it in Berlin.",
     },
   ],
 );

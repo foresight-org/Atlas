@@ -158,7 +158,7 @@ export function ConnectionsPage({
               </h1>
               <p className="truncate text-sm text-gray-600">
                 {tab === "nodes"
-                  ? "From other nodes"
+                  ? "Who you should talk to"
                   : connectionIds.length > 0
                     ? unresolvedIds.length > 0
                       ? `${connectedPeople.length} visible · ${unresolvedIds.length} unavailable`

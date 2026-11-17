@@ -27,7 +27,7 @@ export const NODE_RECOMMENDATIONS: NodeRecommendation[] = [
     nodeId: "sf",
     surfacedAt: "berlin",
     problem: "Confidential inference",
-    line: "Zero-knowledge match. The proof names her. The conversation stays in San Francisco.",
+    line: "From a conversation you were in on confidential inference. She is on it in San Francisco.",
   },
   {
     id: "jonas-keller",
@@ -36,7 +36,7 @@ export const NODE_RECOMMENDATIONS: NodeRecommendation[] = [
     nodeId: "berlin",
     surfacedAt: "sf",
     problem: "Neurotech readouts",
-    line: "Zero-knowledge match. The proof names him. The conversation stays in Berlin.",
+    line: "From a conversation you were in on neurotech readouts. He is on it in Berlin.",
   },
   {
     id: "amira-hassan",
@@ -45,7 +45,7 @@ export const NODE_RECOMMENDATIONS: NodeRecommendation[] = [
     nodeId: "berlin",
     surfacedAt: "cape-town",
     problem: "Water and compute",
-    line: "Zero-knowledge match. The proof names her. The conversation stays in Berlin.",
+    line: "From a conversation you were in on water and compute. She is on it in Berlin.",
   },
 ];
 
