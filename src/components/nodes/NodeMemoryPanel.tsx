@@ -108,7 +108,7 @@ export function NodeMemoryPanel({ place, onClose }: NodeMemoryPanelProps) {
 
       <section aria-labelledby="node-problems-title">
         <h3 id="node-problems-title" className="font-heading">
-          Hard problems
+          Current hard problems
         </h3>
         <HardProblems
           problems={problems}

@@ -1,8 +1,11 @@
 /**
- * Three short notices. Roles, never names.
+ * Three short notices.
+ * An introduction can name a person because the viewer is signed in.
+ * The conversation that produced the match stays at the other Node.
  */
 
 import { memoryPlaceName } from "../../data/nodeMemoryPlaces";
+import { NODE_RECOMMENDATIONS, openNodeRecommendations } from "../../data/nodeRecommendations";
 import type { MemoryInsight } from "../../types/nodeMemory";
 
 const KICKER = {
@@ -15,6 +18,24 @@ export function InsightCards({ insights }: { insights: MemoryInsight[] }) {
   return (
     <ul className="atlas-insights">
       {insights.map((insight) => {
+        const recommendation = insight.recommendationId
+          ? NODE_RECOMMENDATIONS.find((entry) => entry.id === insight.recommendationId)
+          : undefined;
+        if (recommendation) {
+          return (
+            <li key={insight.type} className="is-intro">
+              <p>{KICKER.intro}</p>
+              <h4>{recommendation.name}</h4>
+              <p className="atlas-insights__where">
+                {recommendation.role} · {memoryPlaceName(recommendation.nodeId)}
+              </p>
+              <p>{recommendation.line}</p>
+              <button type="button" className="atlas-insights__link" onClick={openNodeRecommendations}>
+                See in Connections
+              </button>
+            </li>
+          );
+        }
         const where = insight.toNode ? memoryPlaceName(insight.toNode) : null;
         return (
           <li key={insight.type}>

@@ -218,9 +218,10 @@ const BERLIN: NodeGraph = graph(
     },
     {
       type: "intro",
-      title: "A cryptographer and a biologist",
-      roles: ["cryptographer", "biologist"],
-      body: "Both stuck on sharing a result without the sample.",
+      title: "Leah Okonkwo",
+      recommendationId: "leah-okonkwo",
+      roles: ["cryptographer"],
+      body: "Zero-knowledge match. The proof names her. The conversation stays in San Francisco.",
     },
   ],
 );
@@ -287,9 +288,10 @@ const SAN_FRANCISCO: NodeGraph = graph(
     },
     {
       type: "intro",
-      title: "A hardware engineer and a security reviewer",
-      roles: ["hardware engineer", "security reviewer"],
-      body: "The enclave and the review are the same stuck point.",
+      title: "Jonas Keller",
+      recommendationId: "jonas-keller",
+      roles: ["biologist"],
+      body: "Zero-knowledge match. The proof names him. The conversation stays in Berlin.",
     },
   ],
 );
@@ -350,9 +352,10 @@ const CAPE_TOWN: NodeGraph = graph(
     },
     {
       type: "intro",
-      title: "A climate modeller and a systems engineer",
-      roles: ["climate modeller", "systems engineer"],
-      body: "The water constraint and the training schedule are one problem.",
+      title: "Amira Hassan",
+      recommendationId: "amira-hassan",
+      roles: ["systems engineer"],
+      body: "Zero-knowledge match. The proof names her. The conversation stays in Berlin.",
     },
   ],
 );

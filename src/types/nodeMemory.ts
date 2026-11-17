@@ -68,6 +68,8 @@ export interface MemoryInsight {
   toNode?: string;
   topic?: string;
   roles?: string[];
+  /** Sample introduction. Present on `intro` insights. */
+  recommendationId?: string;
 }
 
 export interface MemoryConversation {

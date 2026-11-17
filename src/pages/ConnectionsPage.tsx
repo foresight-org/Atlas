@@ -22,6 +22,14 @@ import {
 import { isOpenToMeet } from "../utils/openToMeet";
 import { buildFullPath } from "../utils/router";
 import { cn } from "../components/ui/utils";
+import { FromNodesList } from "../components/nodes/FromNodesList";
+
+type ConnectionsTab = "saved" | "nodes";
+
+function initialConnectionsTab(): ConnectionsTab {
+  if (typeof window === "undefined") return "saved";
+  return new URLSearchParams(window.location.search).get("from") === "nodes" ? "nodes" : "saved";
+}
 
 const connectionsHeaderStyle: React.CSSProperties = {
   background: `linear-gradient(to bottom, rgba(255,255,255,0.90) 0%, rgba(255,255,255,0.82) 100%), ${connectionsHeaderGradient}`,
@@ -46,6 +54,7 @@ export function ConnectionsPage({
   onViewPerson,
 }: ConnectionsPageProps) {
   const [tick, setTick] = useState(0);
+  const [tab, setTab] = useState<ConnectionsTab>(initialConnectionsTab);
 
   useEffect(() => {
     if (!identity?.personId) return;
@@ -147,22 +156,53 @@ export function ConnectionsPage({
               <h1 className="truncate font-heading text-lg font-semibold text-gray-900 md:text-xl">
                 Connections
               </h1>
-              {connectionIds.length > 0 ? (
-                <p className="truncate text-sm text-gray-600">
-                  {unresolvedIds.length > 0
-                    ? `${connectedPeople.length} visible · ${unresolvedIds.length} unavailable`
-                    : `${connectedPeople.length} saved`}
-                  {openToMeetCount > 0
-                    ? ` · ${openToMeetCount} open to meet`
-                    : ""}
-                </p>
-              ) : null}
+              <p className="truncate text-sm text-gray-600">
+                {tab === "nodes"
+                  ? "From other nodes"
+                  : connectionIds.length > 0
+                    ? unresolvedIds.length > 0
+                      ? `${connectedPeople.length} visible · ${unresolvedIds.length} unavailable`
+                      : `${connectedPeople.length} saved${openToMeetCount > 0 ? ` · ${openToMeetCount} open to meet` : ""}`
+                    : "People you saved"}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       <main className="flex-1 overflow-auto px-4 py-6 pb-8 md:px-8 md:py-8">
+        <div className="mx-auto mb-6 flex max-w-2xl gap-1 rounded-full bg-white/80 p-1 shadow-sm ring-1 ring-gray-200" role="tablist" aria-label="Connections">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "saved"}
+            className={cn(
+              "min-h-[40px] flex-1 rounded-full px-3 text-sm font-semibold touch-manipulation",
+              tab === "saved" ? "text-gray-900 shadow-sm" : "text-gray-500",
+            )}
+            style={tab === "saved" ? { background: "linear-gradient(135deg, #bfdbfe 0%, #c4b5fd 100%)" } : undefined}
+            onClick={() => setTab("saved")}
+          >
+            Saved
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "nodes"}
+            className={cn(
+              "min-h-[40px] flex-1 rounded-full px-3 text-sm font-semibold touch-manipulation",
+              tab === "nodes" ? "text-gray-900 shadow-sm" : "text-gray-500",
+            )}
+            style={tab === "nodes" ? { background: "linear-gradient(135deg, #a5f3fc 0%, #6ee7b7 100%)" } : undefined}
+            onClick={() => setTab("nodes")}
+          >
+            From nodes
+          </button>
+        </div>
+        {tab === "nodes" ? (
+          <FromNodesList />
+        ) : (
+        <>
         <div
           className="mx-auto mb-6 flex max-w-2xl gap-3 rounded-xl border border-gray-200/80 bg-white/70 px-4 py-3 text-sm leading-relaxed text-gray-600"
           role="note"
@@ -297,6 +337,8 @@ export function ConnectionsPage({
               </section>
             ) : null}
           </div>
+        )}
+        </>
         )}
       </main>
     </div>
