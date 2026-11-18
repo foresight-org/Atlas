@@ -32,7 +32,7 @@ cron calls `GET /api/polls?ping=1` to keep it awake.
 
 ## Tables
 
-`db/migrations/001_polls.sql`.
+`db/migrations/001_polls.sql` and `db/migrations/003_node_memory.sql`.
 
 - **polls**: one row per poll. `options` is JSON. `version` goes up on every
   write, and an edit only lands if the version is still the one it read. Two
@@ -41,6 +41,11 @@ cron calls `GET /api/polls?ping=1` to keep it awake.
   If the phone submits again, its row is overwritten and `revisions` goes up.
   Resubmitting never adds a ballot. The insert only lands if the poll is live
   and its final minute hasn't run out, checked in the same statement.
+- **node_memory_bundles**: one row per Node session. Meld posts a graph
+  (topics, problems, embers, edges, insights). Sending the same session again
+  replaces the row. The recording is not a column. Without Postgres, the same
+  rows sit in `mock/node-memory.local.json` so a Node can run the API offline.
+  See `docs/MELD.md`.
 
 Row level security is on with no policies. The public Supabase keys can't read
 the tables; the API connects as the owner.

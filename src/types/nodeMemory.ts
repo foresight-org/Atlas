@@ -68,8 +68,10 @@ export interface MemoryInsight {
   toNode?: string;
   topic?: string;
   roles?: string[];
-  /** Sample introduction. Present on `intro` insights. */
+  /** Sample introduction, looked up in the demo set. */
   recommendationId?: string;
+  /** A person named by an ingested graph. Fictional in the sample; from Meld when live. */
+  recommendation?: { name: string; role: string; nodeId: string };
 }
 
 export interface MemoryConversation {

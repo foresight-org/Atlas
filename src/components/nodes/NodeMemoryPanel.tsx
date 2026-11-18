@@ -10,7 +10,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { memoryGraph } from "../../data/nodeMemory.sample";
-import type { MemoryPlace } from "../../types/nodeMemory";
+import { fetchNodeMemory } from "../../services/nodeMemoryFeed";
+import type { MemoryPlace, NodeGraph } from "../../types/nodeMemory";
 import { HardProblems } from "./HardProblems";
 import { InsightCards } from "./InsightCards";
 import { KnowledgeGraph } from "./KnowledgeGraph";
@@ -29,7 +30,22 @@ interface NodeMemoryPanelProps {
 }
 
 export function NodeMemoryPanel({ place, onClose }: NodeMemoryPanelProps) {
-  const graph = memoryGraph(place.id);
+  const sample = memoryGraph(place.id);
+  const [published, setPublished] = useState<NodeGraph | null>(null);
+
+  useEffect(() => {
+    let gone = false;
+    setPublished(null);
+    void fetchNodeMemory(place.id).then((graph) => {
+      if (!gone && graph) setPublished(graph);
+    });
+    return () => {
+      gone = true;
+    };
+  }, [place.id]);
+
+  const graph = published ?? sample;
+  const fromMeld = published !== null;
   const rootRef = useRef<HTMLElement>(null);
   const [kind, setKind] = useState<MemoryScopeKind>("all");
   const [eventId, setEventId] = useState("");
@@ -93,7 +109,9 @@ export function NodeMemoryPanel({ place, onClose }: NodeMemoryPanelProps) {
     >
       <header className="atlas-node-memory__header">
         <div className="atlas-node-memory__bar">
-          <p className="atlas-node-memory__sample">Prototype. Sample data only.</p>
+          <p className="atlas-node-memory__sample">
+            {fromMeld ? "From Meld" : "Prototype. Sample data only."}
+          </p>
           <button type="button" className="atlas-node-memory__close" onClick={onClose} aria-label="Close node">
             <X aria-hidden />
           </button>

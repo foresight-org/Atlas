@@ -17,9 +17,10 @@ export function InsightCards({ insights }: { insights: MemoryInsight[] }) {
   return (
     <ul className="atlas-insights">
       {insights.map((insight) => {
-        const recommendation = insight.recommendationId
+        const sample = insight.recommendationId
           ? NODE_RECOMMENDATIONS.find((entry) => entry.id === insight.recommendationId)
           : undefined;
+        const recommendation = insight.recommendation ?? sample;
         if (recommendation) {
           return (
             <li key={insight.type} className="is-intro">
