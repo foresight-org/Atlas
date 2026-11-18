@@ -28,7 +28,6 @@ export function InsightCards({ insights }: { insights: MemoryInsight[] }) {
               <p className="atlas-insights__where">
                 {recommendation.role} · {memoryPlaceName(recommendation.nodeId)}
               </p>
-              <p>{recommendation.line}</p>
               <button type="button" className="atlas-insights__link" onClick={openNodeRecommendations}>
                 See in Connections
               </button>
@@ -43,7 +42,6 @@ export function InsightCards({ insights }: { insights: MemoryInsight[] }) {
               {where ? ` · ${where}` : ""}
             </p>
             <h4>{insight.title}</h4>
-            <p>{insight.body}</p>
           </li>
         );
       })}

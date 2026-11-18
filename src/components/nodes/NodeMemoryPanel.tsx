@@ -15,7 +15,6 @@ import { HardProblems } from "./HardProblems";
 import { InsightCards } from "./InsightCards";
 import { KnowledgeGraph } from "./KnowledgeGraph";
 import { MemoryScopeControl } from "./MemoryScopeControl";
-import { PipelineStrip } from "./PipelineStrip";
 import { projectMemory, type MemoryScopeKind } from "./projectMemory";
 
 const KIND_LABEL: Record<MemoryPlace["kind"], string> = {
@@ -135,7 +134,6 @@ export function NodeMemoryPanel({ place, onClose }: NodeMemoryPanelProps) {
         onSelect={setSelectedTopicId}
       />
 
-      <PipelineStrip />
       <InsightCards insights={graph.insights} />
     </article>
   );

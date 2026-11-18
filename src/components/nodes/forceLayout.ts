@@ -125,14 +125,14 @@ export function tickBodies(
       body.vy = 0;
       continue;
     }
-    body.vx += (centerX - body.x) * 0.012;
-    body.vy += (centerY - body.y) * 0.012;
+    body.vx += (centerX - body.x) * 0.028;
+    body.vy += (centerY - body.y) * 0.028;
     body.vx *= 0.7;
     body.vy *= 0.7;
     body.x += body.vx;
     body.y += body.vy;
-    const padX = body.r + 36;
-    const padY = body.r + 22;
+    const padX = body.r + 48;
+    const padY = body.r + 46;
     body.x = Math.max(padX, Math.min(width - padX, body.x));
     body.y = Math.max(padY, Math.min(height - padY, body.y));
     energy += body.vx * body.vx + body.vy * body.vy;

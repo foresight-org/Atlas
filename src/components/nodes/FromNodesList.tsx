@@ -10,8 +10,7 @@ export function FromNodesList() {
   return (
     <div className="mx-auto max-w-2xl">
       <p className="mb-4 text-sm leading-relaxed text-gray-600">
-        <span className="font-medium text-gray-800">Prototype. Sample data only.</span>{" "}
-        Who you should talk to, from conversations you were in.
+        <span className="font-medium text-gray-800">Prototype. Sample data only.</span>
       </p>
       <ul className="space-y-3">
         {NODE_RECOMMENDATIONS.map((recommendation) => (
@@ -26,9 +25,8 @@ export function FromNodesList() {
               {recommendation.name}
             </h2>
             <p className="text-sm text-gray-600">
-              {recommendation.role} · surfaced at {memoryPlaceName(recommendation.surfacedAt)}
+              {recommendation.role} · {memoryPlaceName(recommendation.surfacedAt)}
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-gray-600">{recommendation.line}</p>
           </li>
         ))}
       </ul>

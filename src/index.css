@@ -3597,9 +3597,10 @@ h4 {
 }
 
 .atlas-memory-graph__frame {
-  border: 1px solid var(--memory-border);
-  border-radius: 12px;
-  background: linear-gradient(160deg, rgba(165, 243, 252, 0.55) 0%, rgba(167, 243, 208, 0.38) 52%, rgba(251, 207, 232, 0.5) 100%);
+  border: 1px solid rgba(191, 219, 254, 0.7);
+  border-radius: 16px;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(191, 219, 254, 0.72) 0%, rgba(251, 207, 232, 0.28) 46%, rgba(255, 255, 255, 0.96) 74%);
 }
 
 .atlas-memory-graph__svg {
@@ -3611,7 +3612,7 @@ h4 {
 
 .atlas-memory-graph__edge {
   fill: none;
-  stroke: var(--memory-line);
+  stroke: #818cf8;
 }
 
 .atlas-memory-mark {
@@ -3636,11 +3637,23 @@ h4 {
   stroke-width: 1.5;
 }
 
+.atlas-memory-mark__glow {
+  pointer-events: none;
+  opacity: 0.42;
+}
+
+.atlas-memory-mark.is-topic .atlas-memory-mark__glow { fill: #7dd3fc; }
+.atlas-memory-mark.is-problem .atlas-memory-mark__glow { fill: #f9a8d4; }
+.atlas-memory-mark.is-term .atlas-memory-mark__glow { fill: #6ee7b7; }
+
+.atlas-memory-mark.is-lit .atlas-memory-mark__glow {
+  opacity: 0.9;
+}
+
 .atlas-memory-mark__bridge {
   fill: none;
-  stroke: var(--memory-shared);
+  stroke: #a5b4fc;
   stroke-width: 1.25;
-  stroke-dasharray: 2 2;
 }
 
 .atlas-memory-mark__core {
@@ -3655,9 +3668,12 @@ h4 {
 }
 
 .atlas-memory-mark__label {
-  fill: var(--memory-ink);
+  fill: #0f172a;
+  stroke: rgba(255, 255, 255, 0.92);
+  stroke-width: 4px;
+  paint-order: stroke;
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   text-anchor: middle;
   pointer-events: none;

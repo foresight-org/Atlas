@@ -8,8 +8,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { memoryPlaceName } from "../../data/nodeMemoryPlaces";
-import type { MemoryEdge, MemoryTopicKind } from "../../types/nodeMemory";
+import type { MemoryEdge } from "../../types/nodeMemory";
 import {
   seedBodies,
   tickBodies,
@@ -17,7 +16,6 @@ import {
   type ForceBody,
 } from "./forceLayout";
 import type { ProjectedTopic } from "./projectMemory";
-import { formatMemoryDate } from "./projectMemory";
 import { useReducedMotion } from "./useReducedMotion";
 
 interface KnowledgeGraphProps {
@@ -26,12 +24,6 @@ interface KnowledgeGraphProps {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
 }
-
-const KIND_NAME: Record<MemoryTopicKind, string> = {
-  topic: "Topic",
-  problem: "Hard problem",
-  term: "Emerging term",
-};
 
 function curve(x1: number, y1: number, x2: number, y2: number): string {
   const midX = (x1 + x2) / 2;
@@ -55,7 +47,7 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
   const svgRef = useRef<SVGSVGElement>(null);
   const bodiesRef = useRef<ForceBody[]>([]);
   const dragRef = useRef<{ id: string; moved: boolean } | null>(null);
-  const [size, setSize] = useState({ width: 360, height: 200 });
+  const [size, setSize] = useState({ width: 360, height: 300 });
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const topicKey = topics.map((entry) => `${entry.id}:${entry.weight}`).join("|");
@@ -67,7 +59,7 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
     const measure = () => {
       const width = frame.clientWidth;
       if (width < 40) return;
-      setSize({ width, height: 200 });
+      setSize({ width, height: 300 });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -139,9 +131,6 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
     return ids;
   }, [edges, focusId]);
 
-  const byId = useMemo(() => new Map(topics.map((entry) => [entry.id, entry])), [topics]);
-  const selected = selectedId ? byId.get(selectedId) ?? null : null;
-
   const pointFor = (id: string) => positions[id];
 
   const endDrag = () => {
@@ -191,6 +180,11 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
           onPointerUp={endDrag}
           onPointerLeave={() => setHoveredId(null)}
         >
+          <defs>
+            <filter id="atlas-memory-glow" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="5" />
+            </filter>
+          </defs>
           {edges.map((edge) => {
             const from = pointFor(edge.source);
             const to = pointFor(edge.target);
@@ -201,8 +195,8 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
                 key={`${edge.source}-${edge.target}`}
                 d={curve(from.x, from.y, to.x, to.y)}
                 className="atlas-memory-graph__edge"
-                strokeWidth={1 + Math.min(edge.weight, 3) * 0.55}
-                opacity={dim ? 0.08 : 0.85}
+                strokeWidth={dim ? 0.6 : 1.15}
+                opacity={dim ? 0.2 : 0.75}
               />
             );
           })}
@@ -210,23 +204,20 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
             const point = pointFor(entry.id);
             if (!point) return null;
             const dim = neighborhood != null && !neighborhood.has(entry.id);
-            /*
-             * At rest, name the bridges and anything small enough to read.
-             * Hover and selection bring the neighbours’ names out with them.
-             */
-            const labelId = hoveredId ?? selectedId;
-            const showLabel = entry.id === labelId;
+            const lit = entry.id === hoveredId || entry.id === selectedId;
+            const showLabel = lit;
             const radius = topicRadius(entry.weight);
+            const mark = Math.max(5.5, radius * 0.62);
             return (
               <g
                 key={entry.id}
-                className={`atlas-memory-mark is-${entry.kind}${entry.sharedWith.length > 0 ? " is-shared" : ""}`}
+                className={`atlas-memory-mark is-${entry.kind}${entry.sharedWith.length > 0 ? " is-shared" : ""}${lit ? " is-lit" : ""}`}
                 transform={`translate(${point.x.toFixed(1)} ${point.y.toFixed(1)})`}
                 tabIndex={0}
                 role="button"
                 aria-pressed={entry.id === selectedId}
-                aria-label={`${entry.label}, ${KIND_NAME[entry.kind]}, ${entry.weight} ${entry.weight === 1 ? "conversation" : "conversations"}`}
-                opacity={dim ? 0.2 : 1}
+                aria-label={entry.label}
+                opacity={dim ? 0.42 : 1}
                 onPointerEnter={() => setHoveredId(entry.id)}
                 onPointerDown={(event) => {
                   if (event.button !== 0) return;
@@ -242,17 +233,18 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
                   onSelect(entry.id === selectedId ? null : entry.id);
                 }}
               >
+                <circle r={mark * 2.8} className="atlas-memory-mark__glow" filter="url(#atlas-memory-glow)" />
                 {entry.sharedWith.length > 0 ? (
-                  <circle r={radius + 5} className="atlas-memory-mark__bridge" />
+                  <circle r={mark + 7} className="atlas-memory-mark__bridge" />
                 ) : null}
                 {entry.kind === "problem" ? (
-                  <polygon points={diamond(0, 0, radius)} />
+                  <polygon points={diamond(0, 0, mark + 1.5)} />
                 ) : (
-                  <circle r={radius} />
+                  <circle r={mark} />
                 )}
-                {entry.kind === "term" ? <circle r={radius * 0.45} className="atlas-memory-mark__core" /> : null}
+                {entry.kind === "term" ? <circle r={mark * 0.42} className="atlas-memory-mark__core" /> : null}
                 {showLabel ? (
-                  <text y={radius + 13} className="atlas-memory-mark__label">
+                  <text y={-(mark * 2.8 + 4)} className="atlas-memory-mark__label">
                     {entry.label}
                   </text>
                 ) : null}
@@ -260,28 +252,6 @@ export function KnowledgeGraph({ topics, edges, selectedId, onSelect }: Knowledg
             );
           })}
         </svg>
-      </div>
-      <ul className="atlas-memory-key" aria-label="Graph key">
-        <li><i className="is-topic" /> Topic</li>
-        <li><i className="is-problem" /> Hard problem</li>
-        <li><i className="is-term" /> Emerging term</li>
-        <li><i className="is-shared" /> Shared</li>
-      </ul>
-      <div className="atlas-memory-detail" aria-live="polite">
-        {selected ? (
-          <>
-            <p className="atlas-memory-detail__kind">{KIND_NAME[selected.kind]}</p>
-            <h4 className="atlas-memory-detail__title">{selected.label}</h4>
-            <p>
-              {selected.weight} {selected.weight === 1 ? "conversation" : "conversations"}
-              {" · "}
-              {formatMemoryDate(selected.firstSeen)}
-              {selected.sharedWith.length > 0
-                ? ` · ${selected.sharedWith.map((id) => memoryPlaceName(id)).join(", ")}`
-                : ""}
-            </p>
-          </>
-        ) : null}
       </div>
     </div>
   );
