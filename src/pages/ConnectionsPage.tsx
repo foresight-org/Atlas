@@ -196,11 +196,11 @@ export function ConnectionsPage({
             style={tab === "nodes" ? { background: "linear-gradient(135deg, #a5f3fc 0%, #6ee7b7 100%)" } : undefined}
             onClick={() => setTab("nodes")}
           >
-            From nodes
+            From Nodes
           </button>
         </div>
         {tab === "nodes" ? (
-          <FromNodesList />
+          <FromNodesList people={people} viewerId={identity?.personId ?? ""} onViewPerson={onViewPerson} />
         ) : (
         <>
         <div

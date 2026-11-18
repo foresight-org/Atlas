@@ -55,6 +55,8 @@ const DESKTOP_SPLIT_MIN_WIDTH = 1024;
 
 interface MapViewProps {
   filteredPeople: Person[];
+  /** Full directory. Recommendations read this, not the filtered map pins. */
+  directory?: Person[];
   /**
    * Still accepted so the sidebar's FellowCard can show a "next travel" teaser,
    * but NEVER used to place pins on the map. One person = one pin = their
@@ -647,6 +649,7 @@ function ImperativeMarkerClusters({
 
 export function MapView({
   filteredPeople,
+  directory,
   filteredTravelWindows,
   events,
   onViewPersonDetails,
@@ -1269,7 +1272,12 @@ export function MapView({
         ) : null}
         {surface === "nodes" && isMobile && selectedPlace ? (
           <div className="atlas-node-sheet">
-            <NodeMemoryPanel place={selectedPlace} onClose={closeMemory} />
+            <NodeMemoryPanel
+              place={selectedPlace}
+              people={directory ?? filteredPeople}
+              onClose={closeMemory}
+              onViewPerson={(id) => onViewPersonDetails?.(id)}
+            />
           </div>
         ) : null}
 
@@ -1442,7 +1450,12 @@ export function MapView({
       {/* Mobile: full-screen fellows sheet — above header/hamburger so list is on top */}
       {!isMobile && surface === "nodes" && selectedPlace ? (
         <div className="atlas-node-column">
-          <NodeMemoryPanel place={selectedPlace} onClose={closeMemory} />
+          <NodeMemoryPanel
+            place={selectedPlace}
+            people={directory ?? filteredPeople}
+            onClose={closeMemory}
+            onViewPerson={(id) => onViewPersonDetails?.(id)}
+          />
         </div>
       ) : null}
 

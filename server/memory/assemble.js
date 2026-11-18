@@ -38,6 +38,7 @@ function assemble(placeId, bundles) {
         mentions: [],
       };
       if (topic.kind === "topic" && node.kind !== "topic") topic.kind = node.kind;
+      if (node.summary) topic.summary = node.summary;
       topic.mentions.push({ conversationId, at: bundle.session.at });
       topic.weight = topic.mentions.length;
       topics.set(node.id, topic);

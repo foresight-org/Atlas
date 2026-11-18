@@ -38,8 +38,8 @@ async function deriveGraph(text) {
       role: "system",
       content:
         "You turn a sterilized conversation into a small graph. Reply with JSON only: " +
-        '{"nodes":[{"id":"","label":"","kind":"topic|problem|term"}],"edges":[{"source":"","target":"","relation":"supports|opposes|qualifies"}],"insights":[{"type":"emerging_term|bridge|intro","title":""}]}. ' +
-        "No person names. At most 12 nodes. Problems are what the room is stuck on. Terms are new phrases.",
+        '{"nodes":[{"id":"","label":"","kind":"topic|problem|term","summary":""}],"edges":[{"source":"","target":"","relation":"supports|opposes|qualifies"}],"insights":[{"type":"emerging_term|bridge|intro","title":""}]}. ' +
+        "No person names. At most 12 nodes. Problems are what the room is stuck on, and each problem summary is one sentence about what was said. Terms are new phrases.",
     },
     { role: "user", content: text },
   ];

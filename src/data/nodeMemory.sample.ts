@@ -31,6 +31,7 @@ function topic(
   kind: MemoryTopicKind,
   sharedWith: string[],
   mentions: readonly MentionSeed[],
+  summary?: string,
 ): MemoryTopic {
   let firstSeen = mentions[0]?.[1] ?? SAMPLE_CLOCK;
   const recorded: MemoryMention[] = [];
@@ -48,6 +49,7 @@ function topic(
     firstSeen,
     weight: conversations.size,
     mentions: recorded,
+    summary,
   };
 }
 
@@ -141,19 +143,33 @@ const BERLIN: NodeGraph = graph(
       ["ber-nov-attest", "2026-11-12"],
       ["ber-nov-compute", "2026-11-13"],
     ]),
-    topic("hardware-attestation", "Hardware attestation", "problem", [], [
-      ["ber-oct-inference", "2026-10-16"],
-      ["ber-nov-attest", "2026-11-12"],
-    ]),
+    topic(
+      "hardware-attestation",
+      "Hardware attestation",
+      "problem",
+      [],
+      [
+        ["ber-oct-inference", "2026-10-16"],
+        ["ber-nov-attest", "2026-11-12"],
+      ],
+      "Two salons asked whether a machine can show what it actually ran, on hardware the Node holds.",
+    ),
     topic("local-models", "Local models", "topic", [], [
       ["ber-oct-inference", "2026-10-16"],
       ["ber-nov-early", "2026-11-02"],
       ["ber-nov-compute", "2026-11-13"],
     ]),
-    topic("key-management", "Key management", "problem", [], [
-      ["ber-oct-inference", "2026-10-16"],
-      ["ber-nov-attest", "2026-11-12"],
-    ]),
+    topic(
+      "key-management",
+      "Key management",
+      "problem",
+      [],
+      [
+        ["ber-oct-inference", "2026-10-16"],
+        ["ber-nov-attest", "2026-11-12"],
+      ],
+      "Keys for the local models are still handed around. The room wants that to stay inside the salon.",
+    ),
     topic("de-identification", "De-identification", "topic", [], [
       ["ber-oct-hall", "2026-10-17"],
       ["ber-nov-memory", "2026-11-12"],
@@ -173,16 +189,26 @@ const BERLIN: NodeGraph = graph(
       ["ber-oct-bio", "2026-10-16"],
       ["ber-nov-memory", "2026-11-12"],
     ]),
-    topic("biostasis-logistics", "Biostasis logistics", "problem", [], [
-      ["ber-oct-bio", "2026-10-16"],
-    ]),
+    topic(
+      "biostasis-logistics",
+      "Biostasis logistics",
+      "problem",
+      [],
+      [["ber-oct-bio", "2026-10-16"]],
+      "Getting samples through a salon week without the readout leaving the people who agreed to it.",
+    ),
     topic("molecular-machines", "Molecular machines", "topic", ["cape-town"], [
       ["ber-oct-bio", "2026-10-16"],
       ["ber-nov-compute", "2026-11-13"],
     ]),
-    topic("lab-governance", "Lab governance", "problem", [], [
-      ["ber-oct-hall", "2026-10-17"],
-    ]),
+    topic(
+      "lab-governance",
+      "Lab governance",
+      "problem",
+      [],
+      [["ber-oct-hall", "2026-10-17"]],
+      "Who may sit in a breakout, and what of that breakout is allowed to be remembered.",
+    ),
     topic("node-compute", "Node compute", "topic", [], [
       ["ber-nov-early", "2026-11-02"],
       ["ber-nov-compute", "2026-11-13"],
@@ -216,13 +242,6 @@ const BERLIN: NodeGraph = graph(
       topic: "confidential-inference",
       body: "Same problem, different words.",
     },
-    {
-      type: "intro",
-      title: "Leah Okonkwo",
-      recommendationId: "leah-okonkwo",
-      roles: ["cryptographer"],
-      body: "From a conversation you were in on confidential inference. She is on it in San Francisco.",
-    },
   ],
 );
 
@@ -235,10 +254,17 @@ const SAN_FRANCISCO: NodeGraph = graph(
     topic("proof-carrying-result", "Proof-carrying result", "term", [], [
       ["sf-nov-proof", "2026-11-13"],
     ]),
-    topic("secure-enclave", "Secure enclave", "problem", [], [
-      ["sf-oct-lab", "2026-10-22"],
-      ["sf-nov-proof", "2026-11-13"],
-    ]),
+    topic(
+      "secure-enclave",
+      "Secure enclave",
+      "problem",
+      [],
+      [
+        ["sf-oct-lab", "2026-10-22"],
+        ["sf-nov-proof", "2026-11-13"],
+      ],
+      "The lab wants a result that can leave the bench without opening the enclave it was made in.",
+    ),
     topic("lab-notebook", "Lab notebook", "topic", [], [
       ["sf-oct-lab", "2026-10-22"],
     ]),
@@ -246,10 +272,17 @@ const SAN_FRANCISCO: NodeGraph = graph(
       ["sf-oct-lab", "2026-10-22"],
       ["sf-nov-bridge", "2026-11-13"],
     ]),
-    topic("sample-privacy", "Sample privacy", "problem", [], [
-      ["sf-oct-policy", "2026-10-22"],
-      ["sf-nov-bridge", "2026-11-13"],
-    ]),
+    topic(
+      "sample-privacy",
+      "Sample privacy",
+      "problem",
+      [],
+      [
+        ["sf-oct-policy", "2026-10-22"],
+        ["sf-nov-bridge", "2026-11-13"],
+      ],
+      "Readouts are crossing the bridge salon faster than the consent around them.",
+    ),
     topic("result-sharing", "Result sharing", "topic", [], [
       ["sf-oct-policy", "2026-10-22"],
       ["sf-nov-proof", "2026-11-13"],
@@ -264,9 +297,14 @@ const SAN_FRANCISCO: NodeGraph = graph(
       ["sf-oct-lab", "2026-10-22"],
       ["sf-nov-proof", "2026-11-13"],
     ]),
-    topic("review-load", "Review load", "problem", [], [
-      ["sf-oct-policy", "2026-10-22"],
-    ]),
+    topic(
+      "review-load",
+      "Review load",
+      "problem",
+      [],
+      [["sf-oct-policy", "2026-10-22"]],
+      "Policy review is the bottleneck. The corner keeps coming back to how little of it the room can finish.",
+    ),
     topic("bay-compute", "Bay compute", "topic", [], [
       ["sf-nov-proof", "2026-11-13"],
     ]),
@@ -286,13 +324,6 @@ const SAN_FRANCISCO: NodeGraph = graph(
       topic: "neurotech-readouts",
       body: "Berlin is on the same readout.",
     },
-    {
-      type: "intro",
-      title: "Jonas Keller",
-      recommendationId: "jonas-keller",
-      roles: ["biologist"],
-      body: "From a conversation you were in on neurotech readouts. He is on it in Berlin.",
-    },
   ],
 );
 
@@ -306,10 +337,17 @@ const CAPE_TOWN: NodeGraph = graph(
     topic("dry-compute", "Dry compute", "term", [], [
       ["cpt-nov-dry", "2026-11-14"],
     ]),
-    topic("cooling-budget", "Cooling budget", "problem", [], [
-      ["cpt-oct-water", "2026-10-29"],
-      ["cpt-nov-dry", "2026-11-14"],
-    ]),
+    topic(
+      "cooling-budget",
+      "Cooling budget",
+      "problem",
+      [],
+      [
+        ["cpt-oct-water", "2026-10-29"],
+        ["cpt-nov-dry", "2026-11-14"],
+      ],
+      "Training is planned around water. The limit they keep hitting is how much cooling the room can afford.",
+    ),
     topic("molecular-machines", "Molecular machines", "topic", ["berlin"], [
       ["cpt-oct-water", "2026-10-29"],
       ["cpt-nov-circle", "2026-11-08"],
@@ -318,9 +356,14 @@ const CAPE_TOWN: NodeGraph = graph(
       ["cpt-nov-circle", "2026-11-08"],
       ["cpt-nov-dry", "2026-11-14"],
     ]),
-    topic("training-schedule", "Training schedule", "problem", [], [
-      ["cpt-nov-circle", "2026-11-08"],
-    ]),
+    topic(
+      "training-schedule",
+      "Training schedule",
+      "problem",
+      [],
+      [["cpt-nov-circle", "2026-11-08"]],
+      "The circle is fitting model runs into the hours the grid and the water allow.",
+    ),
     topic("local-fabrication", "Local fabrication", "topic", [], [
       ["cpt-oct-water", "2026-10-29"],
     ]),
@@ -349,13 +392,6 @@ const CAPE_TOWN: NodeGraph = graph(
       toNode: "berlin",
       topic: "water-and-compute",
       body: "Berlin has started using the same pairing.",
-    },
-    {
-      type: "intro",
-      title: "Amira Hassan",
-      recommendationId: "amira-hassan",
-      roles: ["systems engineer"],
-      body: "From a conversation you were in on water and compute. She is on it in Berlin.",
     },
   ],
 );

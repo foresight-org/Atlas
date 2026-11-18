@@ -872,6 +872,7 @@ export default function App() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 md:p-6 md:pb-6">
         <MapView
           filteredPeople={mapPeople}
+          directory={people}
           /*
            * Travel windows are still passed through so the sidebar FellowCard
            * can show a "next travel" teaser, but MapView never uses them to

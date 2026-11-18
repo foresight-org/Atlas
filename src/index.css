@@ -3540,6 +3540,56 @@ h4 {
   margin: 8px 0 0;
 }
 
+.atlas-topic-brief {
+  margin-top: 14px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--memory-border);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.atlas-topic-brief p:first-child {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--memory-muted);
+}
+
+.atlas-topic-brief h3 {
+  margin: 4px 0 0;
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: #111;
+}
+
+.atlas-topic-brief p:last-child {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.atlas-topic-brief__person {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.atlas-topic-brief__person span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
 .atlas-memory-scope__row {
   display: flex;
   flex-wrap: wrap;

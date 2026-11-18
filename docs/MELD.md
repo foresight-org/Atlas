@@ -16,7 +16,7 @@ curl -X POST http://localhost:3001/api/memory \
     "place": "berlin",
     "source": "meld",
     "session": { "id": "salon-12", "label": "Thursday salon", "at": "2026-11-18" },
-    "problems": [{ "id": "confidential-inference", "label": "Confidential inference" }],
+    "problems": [{ "id": "confidential-inference", "label": "Confidential inference", "summary": "The room is stuck on running a model without the prompt leaving it." }],
     "embers": [{ "id": "room-key", "label": "Room key" }],
     "graph": {
       "nodes": [{ "id": "local-models", "label": "Local models" }],

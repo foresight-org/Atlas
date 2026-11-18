@@ -52,6 +52,11 @@ export interface MemoryTopic {
   sharedWith: string[];
   firstSeen: string;
   mentions: MemoryMention[];
+  /**
+   * What the conversations have actually been saying about this.
+   * Agents read this from the graph. The panel shows it when the topic is open.
+   */
+  summary?: string;
 }
 
 export interface MemoryEdge {

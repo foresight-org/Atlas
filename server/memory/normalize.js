@@ -33,6 +33,10 @@ function labelOf(value, fallback) {
   return text || fallback;
 }
 
+function blurb(value) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, 280);
+}
+
 function asList(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -42,11 +46,14 @@ function readNode(raw, kind) {
   const label = labelOf(raw.label || raw.name || raw.title, "");
   if (!label) return null;
   const given = KINDS.has(raw.kind) ? raw.kind : kind;
-  return {
+  const node = {
     id: slug(raw.id || label, slug(label, "topic")),
     label,
     kind: given,
   };
+  const summary = blurb(raw.summary);
+  if (summary) node.summary = summary;
+  return node;
 }
 
 function readEdge(raw) {
