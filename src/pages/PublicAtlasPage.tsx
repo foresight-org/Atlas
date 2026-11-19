@@ -13,6 +13,7 @@ import { DirectoryLoginForm } from "../components/auth/DirectoryLoginForm";
 import { MapRoleLegend } from "../components/map/MapRoleLegend";
 import { useIsMobile } from "../components/ui/use-mobile";
 import type { PinLocation } from "../components/map/pinAppearance";
+import { FOCUS_COLOR_ORDER, focusColor } from "../styles/focusColors";
 import { APP_NAME, FORESIGHT_LUMA_URL, FORESIGHT_ORG_URL } from "../constants/foresight";
 import { Z_INDEX_MODAL_BACKDROP, Z_INDEX_MODAL_CONTENT } from "../constants/zIndex";
 import { getLastSignedInName } from "../services/identity";
@@ -32,11 +33,25 @@ interface AtlasPreviewPin {
   byRole: Partial<Record<RoleType, number>>;
 }
 
+interface CommunityPreviewPin {
+  city: string;
+  country: string;
+  lat: number;
+  lng: number;
+  total: number;
+  byFocus: Record<string, number>;
+}
+
 interface AtlasPreviewFile {
   generatedAt?: string;
   personCount: number;
   pinCount: number;
   pins: AtlasPreviewPin[];
+  community?: {
+    personCount: number;
+    pinCount: number;
+    pins: CommunityPreviewPin[];
+  };
 }
 
 interface PublicAtlasPageProps {
@@ -57,15 +72,44 @@ const ROLE_ORDER: RoleType[] = [
   "Foresight Team",
 ];
 
-/** The public globe has two faces. Programs is the selected network. Community is the room. */
+/** The public globe has two faces. Programs is the selected network. Community is counts by place. */
 type PublicFace = "community" | "programs";
 
-function pinsForFace(pins: AtlasPreviewPin[], face: PublicFace): AtlasPreviewPin[] {
-  if (face === "programs") return pins;
-  return pins.flatMap((pin) => {
-    const team = Number(pin.byRole?.["Foresight Team"] || 0);
-    if (team <= 0) return [];
-    return [{ ...pin, total: team, alumni: 0, byRole: { "Foresight Team": team } }];
+/** Anonymous stand-ins plus a focus mix. The badge number is people, not focus votes. */
+function communityPinsToMarkers(pins: CommunityPreviewPin[]): PinLocation[] {
+  return pins.map((pin, pinIndex) => {
+    const people: PinLocation["people"] = [];
+    for (let slot = 0; slot < pin.total; slot += 1) {
+      people.push({
+        person: {
+          id: `community-preview-${pinIndex}-${slot}`,
+          fullName: "",
+          roleType: "Community",
+          fellowshipCohortYear: 0,
+          fellowshipEndYear: null,
+          affiliationOrInstitution: null,
+          focusTags: [],
+          currentCity: pin.city,
+          currentCountry: pin.country,
+          currentCoordinates: { lat: pin.lat, lng: pin.lng },
+          primaryNode: "Global",
+          profileUrl: "",
+          profileImageUrl: null,
+          contactUrlOrHandle: null,
+          shortProjectTagline: "",
+          expandedProjectDescription: "",
+          currentlyLookingFor: "",
+          isAlumni: false,
+        },
+      });
+    }
+    return {
+      city: pin.city,
+      country: pin.country,
+      coordinates: { lat: pin.lat, lng: pin.lng },
+      people,
+      focusCounts: pin.byFocus,
+    };
   });
 }
 
@@ -174,15 +218,13 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
     };
   }, []);
 
-  const visiblePins = useMemo(
-    () => (preview?.pins?.length ? pinsForFace(preview.pins, face) : []),
-    [preview, face],
-  );
-
-  const markers = useMemo(
-    () => (visiblePins.length ? pinsToMarkers(visiblePins) : []),
-    [visiblePins],
-  );
+  const markers = useMemo(() => {
+    if (face === "community") {
+      const pins = preview?.community?.pins;
+      return pins?.length ? communityPinsToMarkers(pins) : [];
+    }
+    return preview?.pins?.length ? pinsToMarkers(preview.pins) : [];
+  }, [preview, face]);
 
   return (
     <main className="relative h-[100svh] w-full overflow-hidden bg-[#0b1220] sm:h-[100dvh]">
@@ -234,7 +276,15 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
       <MapRoleLegend
         tone="dark"
         surface="public"
-        roles={face === "community" ? ["Foresight Team"] : undefined}
+        swatches={
+          face === "community"
+            ? FOCUS_COLOR_ORDER.map((name) => ({
+                id: name,
+                label: name,
+                color: focusColor(name).end,
+              }))
+            : undefined
+        }
       />
 
       {/*

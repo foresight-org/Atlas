@@ -17,6 +17,12 @@ const LEGEND_ROLES: Array<{ role: RoleType; label: string }> = [
   { role: "Foresight Team", label: "Team" },
 ];
 
+interface LegendSwatch {
+  id: string;
+  label: string;
+  color: string;
+}
+
 interface MapRoleLegendProps {
   /** Public globe sits on a dark sky — light text. Logged-in map uses light. */
   tone?: "light" | "dark";
@@ -25,8 +31,10 @@ interface MapRoleLegendProps {
    * `public` has no corner zoom — just safe-area inset.
    */
   surface?: "app" | "public";
-  /** Limit the key. The public community face only has the team on the map. */
+  /** Limit the role key. */
   roles?: RoleType[];
+  /** When set, the key is these colors instead of roles. Used by the public community globe. */
+  swatches?: LegendSwatch[];
   className?: string;
 }
 
@@ -34,12 +42,15 @@ export function MapRoleLegend({
   tone = "light",
   surface = "app",
   roles,
+  swatches,
   className,
 }: MapRoleLegendProps) {
   const dark = tone === "dark";
-  const shown = roles
-    ? LEGEND_ROLES.filter((item) => roles.includes(item.role))
-    : LEGEND_ROLES;
+  const shown = swatches
+    ? swatches
+    : (roles ? LEGEND_ROLES.filter((item) => roles.includes(item.role)) : LEGEND_ROLES).map(
+        (item) => ({ id: item.role, label: item.label, color: getRoleGradient(item.role) }),
+      );
 
   return (
     <div
@@ -52,7 +63,7 @@ export function MapRoleLegend({
       )}
       style={{ zIndex: Z_INDEX_MAP_CONTROLS } satisfies CSSProperties}
       role="list"
-      aria-label="Map pin colors by role"
+      aria-label={swatches ? "Map pin colors by focus" : "Map pin colors by role"}
     >
       <ul
         className={cn(
@@ -62,14 +73,14 @@ export function MapRoleLegend({
             : "bg-white/55 text-gray-800 ring-white/50",
         )}
       >
-        {shown.map(({ role, label }) => (
-          <li key={role} className="flex items-center gap-1.5" role="listitem">
+        {shown.map(({ id, label, color }) => (
+          <li key={id} className="flex items-center gap-1.5" role="listitem">
             <span
               className={cn(
                 "size-2.5 shrink-0 rounded-full shadow-sm ring-1",
                 dark ? "ring-white/30" : "ring-black/10",
               )}
-              style={{ background: getRoleGradient(role) }}
+              style={{ background: color }}
               aria-hidden
             />
             <span className="text-[10px] font-medium leading-none tracking-tight">

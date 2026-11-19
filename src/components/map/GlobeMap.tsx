@@ -49,6 +49,7 @@ import {
   rolesFromClusterFlags,
   type PinLocation,
 } from "./pinAppearance";
+import { FOCUS_CLUSTER_KEYS, focusCountsFromProperties, hasFocusCounts } from "../../styles/focusColors";
 
 /** Atlantic in the middle, matching the flat map's opening center. */
 const GLOBE_HOME_CENTER: [number, number] = [0, 20];
@@ -145,6 +146,9 @@ function pinFeatureCollection(markers: PinLocation[]): GeoJSON.FeatureCollection
       };
       for (const { key, role } of ROLE_CLUSTER_KEYS) {
         properties[key] = roles.has(role) ? 1 : 0;
+      }
+      for (const { key, label } of FOCUS_CLUSTER_KEYS) {
+        properties[key] = Number(marker.focusCounts?.[label]) || 0;
       }
       return {
         type: "Feature" as const,
@@ -661,6 +665,16 @@ export function GlobeMap({
       }
 
       if (!people.length || count === 0) return null;
+      const focusCounts: Record<string, number> = {};
+      let anyFocus = false;
+      for (const leaf of leaves) {
+        const marker = sourceMarkers[Number(leaf.properties?.markerIndex)];
+        if (!marker?.focusCounts) continue;
+        anyFocus = true;
+        for (const [label, n] of Object.entries(marker.focusCounts)) {
+          focusCounts[label] = (focusCounts[label] || 0) + n;
+        }
+      }
       let city = "Nearby";
       let country = "";
       let best = 0;
@@ -677,6 +691,7 @@ export function GlobeMap({
         country,
         coordinates: { lat: lat / count, lng: lng / count },
         people,
+        ...(anyFocus ? { focusCounts } : {}),
       };
     };
 
@@ -862,21 +877,25 @@ export function GlobeMap({
       element.className = "atlas-globe-pin";
       if (clustered) {
         const count = Number(properties.personCount) || Number(properties.point_count) || 0;
+        const focusCounts = focusCountsFromProperties(properties);
         element.innerHTML = clusterBadgeHtml({
           count,
           roleTypes: rolesFromClusterFlags(properties),
           communityStatus: communityStatusFromCounts(count, Number(properties.alumniCount) || 0),
+          ...(hasFocusCounts(focusCounts) ? { focusCounts } : {}),
         });
       } else {
         const marker = markersRef.current[Number(properties.markerIndex)];
         const people = marker?.people.map((entry) => entry.person) ?? [];
         const roleTypes = new Set<RoleType>(people.map((person) => person.roleType));
+        const focusCounts = marker?.focusCounts;
         element.innerHTML = locationPinHtml({
           count: people.length,
           roleTypes,
           communityStatus: getCommunityStatus(people),
           isSelected: false,
           iconUrl: iconUrlRef.current,
+          ...(hasFocusCounts(focusCounts) ? { focusCounts } : {}),
         });
       }
       return element;
@@ -912,7 +931,7 @@ export function GlobeMap({
 
         const coords = feature.geometry.coordinates as [number, number];
         const signature = clustered
-          ? `c:${properties.personCount}:${properties.alumniCount}:${properties.fellow}:${properties.seniorFellow}:${properties.grantee}:${properties.prizeWinner}:${properties.nodee}:${properties.foresightTeam}:${properties.communityMember}`
+          ? `c:${properties.personCount}:${properties.alumniCount}:${properties.fellow}:${properties.seniorFellow}:${properties.grantee}:${properties.prizeWinner}:${properties.nodee}:${properties.foresightTeam}:${properties.communityMember}:${properties.focusSecureAi}:${properties.focusNeuro}:${properties.focusLongevity}:${properties.focusNano}:${properties.focusSpace}:${properties.focusHope}:${properties.focusUnset}`
           : `p:${properties.markerIndex}:${properties.personCount}:${properties.alumniCount}`;
 
         const existing = pins.get(id);
@@ -1036,6 +1055,13 @@ export function GlobeMap({
             nodee: ["max", ["get", "nodee"]],
             foresightTeam: ["max", ["get", "foresightTeam"]],
             communityMember: ["max", ["get", "communityMember"]],
+            focusSecureAi: ["+", ["get", "focusSecureAi"]],
+            focusNeuro: ["+", ["get", "focusNeuro"]],
+            focusLongevity: ["+", ["get", "focusLongevity"]],
+            focusNano: ["+", ["get", "focusNano"]],
+            focusSpace: ["+", ["get", "focusSpace"]],
+            focusHope: ["+", ["get", "focusHope"]],
+            focusUnset: ["+", ["get", "focusUnset"]],
           },
         });
         /*

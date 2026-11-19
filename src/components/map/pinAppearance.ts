@@ -7,6 +7,7 @@
 
 import { Person, RoleType } from "../../types";
 import { ROLE_COLORS, getRoleGradient, getRoleTextColor } from "../../styles/roleColors";
+import { focusColor, focusMixBackground, FOCUS_COLOR_ORDER } from "../../styles/focusColors";
 import { effectiveIsAlumni } from "../../utils/cohortLabel";
 
 export interface PinLocation {
@@ -14,6 +15,11 @@ export interface PinLocation {
   country: string;
   coordinates: { lat: number; lng: number };
   people: Array<{ person: Person }>;
+  /**
+   * Public community globe. Counts by focus, never names.
+   * A person in two areas increments both. The badge number stays the headcount.
+   */
+  focusCounts?: Record<string, number>;
 }
 
 /** Canonical order for segment layout so a mixed badge always looks the same. */
@@ -108,9 +114,12 @@ export function locationPinHtml(options: {
   communityStatus: CommunityStatus;
   isSelected: boolean;
   iconUrl: string;
+  focusCounts?: Record<string, number>;
 }): string {
-  const { count, roleTypes, communityStatus, isSelected, iconUrl } = options;
-  const background = createRoleBasedBadgeBackground(roleTypes);
+  const { count, roleTypes, communityStatus, isSelected, iconUrl, focusCounts } = options;
+  const background = focusCounts
+    ? focusMixBackground(focusCounts)
+    : createRoleBasedBadgeBackground(roleTypes);
   const iconSize = isSelected ? 48 : 40;
   const badgeSize = isSelected ? 28 : 24;
   const chrome = badgeChrome(communityStatus);
@@ -151,9 +160,12 @@ export function clusterBadgeHtml(options: {
   count: number;
   roleTypes: Set<RoleType>;
   communityStatus: CommunityStatus;
+  focusCounts?: Record<string, number>;
 }): string {
-  const { count, roleTypes, communityStatus } = options;
-  const background = createRoleBasedBadgeBackground(roleTypes);
+  const { count, roleTypes, communityStatus, focusCounts } = options;
+  const background = focusCounts
+    ? focusMixBackground(focusCounts)
+    : createRoleBasedBadgeBackground(roleTypes);
   const border = badgeChrome(communityStatus).border;
   const singleCircleStyle = `background:${background};border:2px solid ${border};border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.2);font-weight:600;font-size:12px;color:#fff;text-shadow:0 0 1px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);overflow:hidden;transform:translateZ(0)`;
   return `<div class="marker-cluster-role-outer" style="${singleCircleStyle}">${count}</div>`;
@@ -180,6 +192,7 @@ const escapeHtml = (value: string) =>
  * snapshot JSON either; this is belt-and-suspenders for the DOM).
  */
 export function buildShowcasePopupHtml(marker: PinLocation): string {
+  if (marker.focusCounts) return buildFocusShowcasePopupHtml(marker);
   const cityCountry = escapeHtml(marker.country ? `${marker.city}, ${marker.country}` : marker.city);
   const count = marker.people.length;
   const countLabel = count === 1 ? "1 community member" : `${count} community members`;
@@ -214,6 +227,31 @@ export function buildShowcasePopupHtml(marker: PinLocation): string {
     </div>
     <div class="map-node-popup__list">${roleRows}</div>
     <p class="px-3 py-2.5 text-[11px] text-gray-500 border-t border-gray-100 leading-snug">Sign in to see who&rsquo;s here.</p>
+  </div>`;
+}
+
+/** Public community pin: place and focus counts. No names. */
+function buildFocusShowcasePopupHtml(marker: PinLocation): string {
+  const cityCountry = escapeHtml(marker.country ? `${marker.city}, ${marker.country}` : marker.city);
+  const count = marker.people.length;
+  const countLabel = count === 1 ? "1 person" : `${count} people`;
+  const counts = marker.focusCounts || {};
+  const rows = FOCUS_COLOR_ORDER.filter((name) => (counts[name] || 0) > 0)
+    .map((name) => {
+      const color = focusColor(name);
+      const style = `background:linear-gradient(135deg, ${color.start} 0%, ${color.end} 100%);color:${color.text}`;
+      return `<div class="flex items-center justify-between gap-3 px-3 py-2 border-b border-gray-100 last:border-b-0">
+        <span class="text-[11px] px-1.5 py-0.5 rounded font-medium shrink-0" style="${style}">${escapeHtml(name)}</span>
+        <span class="text-sm font-medium text-gray-800 tabular-nums">${counts[name]}</span>
+      </div>`;
+    })
+    .join("");
+  return `<div class="map-node-popup__inner bg-white">
+    <div class="map-node-popup__header px-3 pt-2.5 pb-2 pr-10 border-b border-gray-100">
+      <h4 class="font-semibold text-gray-900 text-sm leading-tight sm:text-base font-heading">${cityCountry}</h4>
+      <p class="text-xs text-gray-500 mt-0.5">${countLabel}</p>
+    </div>
+    <div class="map-node-popup__list">${rows}</div>
   </div>`;
 }
 

@@ -5,7 +5,7 @@
  * Reads RealData (sheet or mock), aggregates people by rounded coordinates,
  * and writes public/data/atlas-preview.json with ONLY:
  *   city, country, lat, lng, total, alumni, byRole
- *
+ * Community pins add byFocus. A person in two areas increments both.
  * No person ids, names, emails, bios, or contact fields — ever.
  *
  * Run manually whenever you want a fresh snapshot (weekly / monthly is fine):
@@ -24,6 +24,16 @@ const fsp = require("fs").promises;
 const path = require("path");
 const { loadRealDataRecords } = require("../server/realdata-store");
 const { parseRoleTypes } = require("../server/role-types");
+const { sharesCommunityAtlas } = require("../server/directory-layer");
+
+const FOCUS_AREAS = [
+  "Secure AI",
+  "Neurotechnology",
+  "Longevity Biotechnology",
+  "Nanotechnology",
+  "Space",
+  "Existential Hope",
+];
 
 const OUT_PATH = path.resolve(__dirname, "../public/data/atlas-preview.json");
 /** ~110m — enough to cluster a city block without exposing an exact address. */
@@ -66,47 +76,68 @@ function primaryRole(person) {
   return ROLE_ORDER.includes(role) ? role : "Fellow";
 }
 
+function placed(person) {
+  const lat = Number(person.currentCoordinates?.lat);
+  const lng = Number(person.currentCoordinates?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat === 0 && lng === 0) return null;
+  return { lat: roundCoord(lat), lng: roundCoord(lng) };
+}
+
+function focusLabels(person) {
+  const tags = Array.isArray(person.focusTags) ? person.focusTags : [];
+  const chosen = tags.map((tag) => String(tag).trim()).filter((tag) => FOCUS_AREAS.includes(tag));
+  return chosen.length ? [...new Set(chosen)] : ["Not yet chosen"];
+}
+
 async function main() {
   const { records } = await loadRealDataRecords();
   /** @type {Map<string, object>} */
-  const byKey = new Map();
-  let personCount = 0;
+  const programPins = new Map();
+  /** @type {Map<string, object>} */
+  const communityPins = new Map();
+  let programPeople = 0;
+  let communityPeople = 0;
 
   for (const record of records || []) {
     const person = record?.person;
-    if (!person?.fullName) continue;
-    if (person.isPrivate) continue;
+    if (!person?.fullName || person.isPrivate) continue;
+    const coords = placed(person);
+    if (!coords) continue;
 
-    const lat = Number(person.currentCoordinates?.lat);
-    const lng = Number(person.currentCoordinates?.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-    if (lat === 0 && lng === 0) continue;
+    const onCommunity = sharesCommunityAtlas(person);
+    const bucket = onCommunity ? communityPins : programPins;
+    if (onCommunity) communityPeople += 1;
+    else programPeople += 1;
 
-    const rLat = roundCoord(lat);
-    const rLng = roundCoord(lng);
-    const key = `${rLat},${rLng}`;
-    personCount += 1;
-
-    let pin = byKey.get(key);
+    const key = `${coords.lat},${coords.lng}`;
+    let pin = bucket.get(key);
     if (!pin) {
       pin = {
         city: String(person.currentCity || "").trim() || "Unknown",
         country: String(person.currentCountry || "").trim(),
-        lat: rLat,
-        lng: rLng,
+        lat: coords.lat,
+        lng: coords.lng,
         total: 0,
         alumni: 0,
-        byRole: Object.fromEntries(ROLE_ORDER.map((r) => [r, 0])),
+        byRole: Object.fromEntries(ROLE_ORDER.map((role) => [role, 0])),
+        byFocus: {},
       };
-      byKey.set(key, pin);
+      bucket.set(key, pin);
     }
 
     pin.total += 1;
-    if (isAlumni(person)) pin.alumni += 1;
-    const role = primaryRole(person);
-    pin.byRole[role] = (pin.byRole[role] || 0) + 1;
+    if (!onCommunity && isAlumni(person)) pin.alumni += 1;
+    if (!onCommunity) {
+      const role = primaryRole(person);
+      pin.byRole[role] = (pin.byRole[role] || 0) + 1;
+    }
+    if (onCommunity) {
+      for (const label of focusLabels(person)) {
+        pin.byFocus[label] = (pin.byFocus[label] || 0) + 1;
+      }
+    }
 
-    // Prefer a non-empty city/country label if a later row at the same pin has one.
     if (!pin.city || pin.city === "Unknown") {
       const city = String(person.currentCity || "").trim();
       if (city) pin.city = city;
@@ -117,7 +148,7 @@ async function main() {
     }
   }
 
-  const pins = [...byKey.values()]
+  const pins = [...programPins.values()]
     .map((pin) => {
       const byRole = {};
       for (const role of ROLE_ORDER) {
@@ -135,18 +166,34 @@ async function main() {
     })
     .sort((a, b) => b.total - a.total || a.city.localeCompare(b.city));
 
+  const community = [...communityPins.values()]
+    .map((pin) => ({
+      city: pin.city,
+      country: pin.country,
+      lat: pin.lat,
+      lng: pin.lng,
+      total: pin.total,
+      byFocus: pin.byFocus,
+    }))
+    .sort((a, b) => b.total - a.total || a.city.localeCompare(b.city));
+
   const payload = {
     generatedAt: new Date().toISOString(),
-    personCount,
+    personCount: programPeople,
     pinCount: pins.length,
     pins,
+    community: {
+      personCount: communityPeople,
+      pinCount: community.length,
+      pins: community,
+    },
   };
 
   await fsp.mkdir(path.dirname(OUT_PATH), { recursive: true });
   await fsp.writeFile(OUT_PATH, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 
   console.log(
-    `Wrote ${pins.length} pins (${personCount} people) → ${path.relative(process.cwd(), OUT_PATH)}`,
+    `Wrote ${pins.length} program pins (${programPeople} people) and ${community.length} community pins (${communityPeople} people) → ${path.relative(process.cwd(), OUT_PATH)}`,
   );
 }
 
