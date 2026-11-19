@@ -3253,6 +3253,12 @@ h4 {
 .atlas-memory-leaflet-icon {
   background: transparent !important;
   border: 0 !important;
+  overflow: visible !important;
+}
+
+.leaflet-marker-icon.atlas-memory-leaflet-icon {
+  /* Let the pin + label paint outside the hit box without clipping. */
+  overflow: visible !important;
 }
 
 .atlas-memory-pin__mark {
@@ -3332,11 +3338,12 @@ h4 {
 }
 
 .atlas-node-sheet {
-  position: absolute;
+  /* Fixed — outside Leaflet’s stacking context (flat map markers ~600). */
+  position: fixed;
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 30;
+  z-index: 1400;
   display: flex;
   flex-direction: column;
   max-height: min(74svh, 680px);
@@ -3344,6 +3351,7 @@ h4 {
   border-radius: 18px 18px 0 0;
   background: #fff;
   box-shadow: 0 -18px 44px rgba(15, 23, 42, 0.22);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .atlas-node-sheet::before {
@@ -3358,45 +3366,6 @@ h4 {
   background: rgba(15, 23, 42, 0.18);
   transform: translateX(-50%);
   pointer-events: none;
-}
-
-.atlas-node-fallback {
-  position: absolute;
-  top: 4.5rem;
-  left: 50%;
-  z-index: 20;
-  width: min(280px, calc(100% - 2rem));
-  padding: 14px 14px 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
-  transform: translateX(-50%);
-  font-family: var(--font-body);
-}
-
-.atlas-node-fallback p {
-  margin: 0 0 8px;
-  font-size: 13px;
-  color: #334155;
-}
-
-.atlas-node-fallback ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.atlas-node-fallback button {
-  min-height: 36px;
-  padding: 0 10px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 999px;
-  background: #fff;
-  font-size: 13px;
-  font-weight: 600;
 }
 
 /* Light panel, same voice as the rest of Atlas: white, Baskerville, Inter, one pastel accent. */

@@ -1,5 +1,8 @@
 /**
  * Node pins on the Leaflet flat map — same marks as the globe layer.
+ *
+ * Selection must beat Leaflet’s map click. DomEvent.stop on the marker
+ * keeps the pulse from clearing before the sidebar can open.
  */
 
 import { useEffect, useRef } from "react";
@@ -26,53 +29,59 @@ export function FlatNodeMarkers({
   const map = useMap();
   const onSelectRef = useRef(onSelect);
   const onClearRef = useRef(onClear);
+  const selectedIdRef = useRef(selectedId);
   onSelectRef.current = onSelect;
   onClearRef.current = onClear;
+  selectedIdRef.current = selectedId;
 
   useEffect(() => {
     const markers = new Map<string, L.Marker>();
-    let swallowClick = false;
+    let ignoreMapClick = false;
 
     for (const place of places) {
       const element = createMemoryPinElement(place, { iconUrl });
       const selectable = place.kind !== "conversation";
-      element.addEventListener("click", (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        swallowClick = true;
-        window.setTimeout(() => {
-          swallowClick = false;
-        }, 80);
-        if (!selectable) return;
-        onSelectRef.current(place.id);
-      });
 
       const icon = L.divIcon({
         className: "atlas-memory-leaflet-icon",
         html: "",
-        iconSize: [1, 1],
-        iconAnchor: [0, 0],
+        iconSize: [40, 48],
+        iconAnchor: [20, 48],
       });
       const marker = L.marker([place.lat, place.lon], {
         icon,
         interactive: true,
         keyboard: selectable,
-        zIndexOffset: place.kind === "conversation" ? 0 : 40,
+        zIndexOffset: place.kind === "conversation" ? 0 : 200,
       });
+
       marker.on("add", () => {
         const host = marker.getElement();
         if (!host) return;
         host.replaceChildren(element);
       });
+
+      marker.on("click", (event) => {
+        L.DomEvent.stopPropagation(event);
+        L.DomEvent.preventDefault(event);
+        ignoreMapClick = true;
+        window.setTimeout(() => {
+          ignoreMapClick = false;
+        }, 0);
+        if (!selectable) return;
+        onSelectRef.current(place.id);
+      });
+
       marker.addTo(map);
       markers.set(place.id, marker);
     }
 
     const onMapClick = () => {
-      if (swallowClick) {
-        swallowClick = false;
+      if (ignoreMapClick) {
+        ignoreMapClick = false;
         return;
       }
+      if (!selectedIdRef.current) return;
       onClearRef.current();
     };
     map.on("click", onMapClick);

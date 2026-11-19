@@ -1271,16 +1271,6 @@ export function MapView({
         )}
 
         {showNodes ? <AtlasSurfaceToggle surface={surface} onChange={chooseSurface} /> : null}
-        {showNodes && surface === "nodes" && isMobile && selectedPlace ? (
-          <div className="atlas-node-sheet">
-            <NodeMemoryPanel
-              place={selectedPlace}
-              people={directory ?? filteredPeople}
-              onClose={closeMemory}
-              onViewPerson={(id) => onViewPersonDetails?.(id)}
-            />
-          </div>
-        ) : null}
 
         {/* Empty state overlay when we have people but no marker coords yet (e.g. still geocoding) or no one matches filters */}
         {surface === "people" && markers.length === 0 && (
@@ -1363,6 +1353,25 @@ export function MapView({
           </Button>
         </div>
       )}
+
+      {/*
+        Node panel lives outside the map panel so Leaflet marker panes
+        (z ~600) cannot bury it the way they did on the flat map.
+        Below the desktop split, use a fixed sheet — same idea as the people list.
+      */}
+      {showNodes && !isDesktopSplit && surface === "nodes" && selectedPlace ? (
+        <div
+          className="atlas-node-sheet"
+          style={{ zIndex: Z_INDEX_MOBILE_SIDEBAR_SHEET }}
+        >
+          <NodeMemoryPanel
+            place={selectedPlace}
+            people={directory ?? filteredPeople}
+            onClose={closeMemory}
+            onViewPerson={(id) => onViewPersonDetails?.(id)}
+          />
+        </div>
+      ) : null}
 
       {/* Fellows & Grantees List - desktop sidebar */}
       {!isMobile && isSidebarOpen && surface === "people" && (
@@ -1449,8 +1458,8 @@ export function MapView({
       )}
 
       {/* Mobile: full-screen fellows sheet — above header/hamburger so list is on top */}
-      {showNodes && !isMobile && surface === "nodes" && selectedPlace ? (
-        <div className="atlas-node-column">
+      {showNodes && isDesktopSplit && surface === "nodes" && selectedPlace ? (
+        <div className="atlas-node-column" style={{ zIndex: Z_INDEX_SIDEBAR }}>
           <NodeMemoryPanel
             place={selectedPlace}
             people={directory ?? filteredPeople}
