@@ -92,8 +92,11 @@ export function CommunitySignupForm({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="community-city">
-          City <span className="font-normal text-gray-400">optional</span>
+          City <span className="font-normal text-gray-500">strongly recommended</span>
         </Label>
+        <p className="text-xs leading-relaxed text-gray-500">
+          This is what places you on the map. You can add it later, but the atlas is much more useful with it.
+        </p>
         <Input
           id="community-city"
           autoComplete="address-level2"

@@ -60,8 +60,32 @@ function normalizeRoleTypesInput(input) {
       throw new Error(`Invalid role type: ${role}`);
     }
   }
-  // Single role per profile — keep the first (primary) when legacy data has multiples.
-  return [unique[0]];
+  if (unique.includes("Community")) return ["Community"];
+  const primary = unique.find((role) => role !== "Nodee") || unique[0];
+  if (
+    unique.includes("Nodee") &&
+    (primary === "Fellow" || primary === "Grantee")
+  ) {
+    return [primary, "Nodee"];
+  }
+  return [primary];
+}
+
+/**
+ * A member cannot grant themselves a role. The sheet (or invite) keeps the
+ * primary. Fellows and grantees may add or remove Nodee only.
+ */
+function rolesKeptOnSelfSave(storedPerson, submittedPerson) {
+  const stored = personRoleList(storedPerson);
+  if (stored.includes("Community")) return ["Community"];
+  if (stored.includes("Foresight Team")) return ["Foresight Team"];
+  if (stored.includes("Senior Fellow")) return ["Senior Fellow"];
+  const primary = stored.find((role) => role !== "Nodee") || stored[0] || "Fellow";
+  const wantsNodee = personRoleList(submittedPerson).includes("Nodee");
+  if ((primary === "Fellow" || primary === "Grantee") && wantsNodee) {
+    return [primary, "Nodee"];
+  }
+  return [primary];
 }
 
 /** Roles a /join invite may create or lock. Staff roles stay sheet-assigned. */
@@ -158,6 +182,7 @@ module.exports = {
   isForesightPeopleProfileUrl,
   redactPublicContactFields,
   parseRoleTypes,
+  rolesKeptOnSelfSave,
   serializeRoleTypes,
   normalizeRoleTypesInput,
 };

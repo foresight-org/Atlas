@@ -69,9 +69,13 @@ import {
 import { LocationSetupPrompt } from "../components/profile/LocationSetupPrompt";
 import {
   getPrimaryRoleType,
+  getPersonRoleTypes,
   normalizeAffiliationInput,
   PROFILE_ROLE_TYPE_OPTIONS,
   JOIN_ROLE_TYPE_OPTIONS,
+  canAlsoBeNodee,
+  lockedPrimaryRole,
+  withNodeeChoice,
 } from "../utils/roleTypes";
 import {
   Select,
@@ -727,12 +731,12 @@ export function ProfilePage({
 
     setIsSaving(true);
     try {
-      const roleType = draft.roleType;
+      const roleTypes = withNodeeChoice(draft, getPersonRoleTypes(draft).includes("Nodee"));
       const payload = {
         ...draft,
         profileImageUrl: photoUrl || null,
-        roleType,
-        roleTypes: [roleType],
+        roleType: roleTypes[0],
+        roleTypes,
         affiliationOrInstitution: normalizeAffiliationInput(draft.affiliationOrInstitution),
         focusTags: mergeFocusTags(editSelectedPresets, editCustomFocusStr),
       };
@@ -894,13 +898,32 @@ export function ProfilePage({
                     />
                   </Field>
 
-                  <Field label="Role type" required>
-                    <RoleTypeSelect
-                      value={draft.roleType}
-                      onChange={(role) => updateDraft("roleType", role)}
-                      locked={draft.roleType === "Community"}
-                      options={draft.roleType === "Community" ? ["Community"] : undefined}
-                    />
+                  <Field
+                    label="Role"
+                    description={
+                      canAlsoBeNodee(draft)
+                        ? "Your fellow or grantee role comes from your invite. You can also be a nodee."
+                        : "Set by your invite or by Foresight. It can’t be changed here."
+                    }
+                  >
+                    <p className="flex h-11 items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800">
+                      {lockedPrimaryRole(draft)}
+                    </p>
+                    {canAlsoBeNodee(draft) ? (
+                      <label className="mt-2 flex cursor-pointer items-start gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 size-4 rounded border-gray-300"
+                          checked={getPersonRoleTypes(draft).includes("Nodee")}
+                          onChange={(event) => {
+                            const roles = withNodeeChoice(draft, event.target.checked);
+                            updateDraft("roleTypes", roles);
+                            updateDraft("roleType", roles[0]);
+                          }}
+                        />
+                        Also a nodee
+                      </label>
+                    ) : null}
                   </Field>
 
                   <Field label="Cohort year" required>
@@ -948,9 +971,17 @@ export function ProfilePage({
                   <Field label="Primary node (location)" required>
                     <Select
                       value={draft.primaryNode === "Alumni" ? "Global" : draft.primaryNode}
-                      onValueChange={(value: PrimaryNode) =>
-                        updateDraft("primaryNode", value)
-                      }
+                      onValueChange={(value: PrimaryNode) => {
+                        updateDraft("primaryNode", value);
+                        if (
+                          (value === "Berlin Node" || value === "Bay Area Node") &&
+                          canAlsoBeNodee(draft)
+                        ) {
+                          const roles = withNodeeChoice(draft, true);
+                          updateDraft("roleTypes", roles);
+                          updateDraft("roleType", roles[0]);
+                        }
+                      }}
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>

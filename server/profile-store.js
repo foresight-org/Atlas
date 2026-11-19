@@ -282,10 +282,11 @@ async function syncPersonToSheets(person, authContext) {
 
   const now = new Date().toISOString();
   const enrichedPerson = await enrichLocation(person);
-  const { isCommunityPerson } = require("./role-types");
+  const { isCommunityPerson, rolesKeptOnSelfSave } = require("./role-types");
+  const keptRoles = rolesKeptOnSelfSave(match.person, enrichedPerson);
+  enrichedPerson.roleTypes = keptRoles;
+  enrichedPerson.roleType = keptRoles[0];
   if (isCommunityPerson(match.person)) {
-    enrichedPerson.roleType = "Community";
-    enrichedPerson.roleTypes = ["Community"];
     enrichedPerson.visibleToCommunity = false;
   } else if (isCommunityPerson(enrichedPerson)) {
     throw new Error("This profile stays on the fellow and grantee atlas.");

@@ -12,10 +12,39 @@ const VALID_ROLE_TYPES: RoleType[] = [
 
 export const ROLE_TYPE_OPTIONS: RoleType[] = VALID_ROLE_TYPES;
 
-/** Self-service profile picker — Senior Fellow is staff-assigned only. */
+/** Self-service profile picker. Team, Senior Fellow, and Community are not choosable. */
 export const PROFILE_ROLE_TYPE_OPTIONS: RoleType[] = VALID_ROLE_TYPES.filter(
-  (r) => r !== "Senior Fellow" && r !== "Community",
+  (r) => r !== "Senior Fellow" && r !== "Foresight Team" && r !== "Community",
 );
+
+const NODE_ADDABLE: RoleType[] = ["Fellow", "Grantee"];
+
+/** The invite or sheet role. Nodee is an addition, not a replacement. */
+export function lockedPrimaryRole(
+  person: Pick<Person, "roleType" | "roleTypes"> | null | undefined,
+): RoleType {
+  const roles = getPersonRoleTypes(person);
+  return roles.find((role) => role !== "Nodee") ?? roles[0] ?? "Fellow";
+}
+
+export function canAlsoBeNodee(
+  person: Pick<Person, "roleType" | "roleTypes"> | null | undefined,
+): boolean {
+  return NODE_ADDABLE.includes(lockedPrimaryRole(person));
+}
+
+/** Fellow or grantee stays. Nodee may be added. Staff and community roles stay as assigned. */
+export function withNodeeChoice(
+  person: Pick<Person, "roleType" | "roleTypes"> | null | undefined,
+  alsoNodee: boolean,
+): RoleType[] {
+  const primary = lockedPrimaryRole(person);
+  if (primary === "Community") return ["Community"];
+  if (primary === "Foresight Team") return ["Foresight Team"];
+  if (primary === "Senior Fellow") return ["Senior Fellow"];
+  if (NODE_ADDABLE.includes(primary) && alsoNodee) return [primary, "Nodee"];
+  return [primary];
+}
 
 /** Roles a standing /join invite may create. Team / Senior Fellow stay staff-assigned. */
 export const JOIN_ROLE_TYPE_OPTIONS: RoleType[] = VALID_ROLE_TYPES.filter(

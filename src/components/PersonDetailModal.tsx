@@ -62,7 +62,7 @@ import { getRolePillClass } from "../styles/roleColors";
 import { connectionsAccentGradient } from "../styles/gradients";
 import { getNodeLabel } from "../utils/nodeLabels";
 import { getCohortLabel, effectiveIsAlumni } from "../utils/cohortLabel";
-import { getPrimaryRoleType } from "../utils/roleTypes";
+import { getPrimaryRoleType, lockedPrimaryRole } from "../utils/roleTypes";
 import { PRESET_FOCUS_AREAS, CUSTOM_FOCUS_AREAS_ENABLED, getPresetFocusTags, getCustomFocusTags, formatCustomFocusTags, mergeFocusTags } from "../data/focusAreas";
 import { FocusTagsDisplay } from "./FocusTagsDisplay";
 import { LookingForNote, LOOKING_FOR_MAX_LENGTH } from "./profile/LookingForNote";
@@ -749,17 +749,9 @@ export function PersonDetailModal({
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                   {isEditing && editingPerson ? (
                     <>
-                      <Select value={editingPerson.roleType} onValueChange={(v: RoleType) => setEditingPerson({ ...editingPerson, roleType: v })}>
-                        <SelectTrigger className="w-28 sm:w-32"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Fellow">Fellow</SelectItem>
-                          <SelectItem value="Senior Fellow">Senior Fellow</SelectItem>
-                          <SelectItem value="Grantee">Grantee</SelectItem>
-                          <SelectItem value="Prize Winner">Prize Winner</SelectItem>
-                          <SelectItem value="Nodee">Nodee</SelectItem>
-                          <SelectItem value="Foresight Team">Foresight Team</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <span className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800">
+                        {lockedPrimaryRole(editingPerson)}
+                      </span>
                       <Select value={String(editingPerson.fellowshipCohortYear)} onValueChange={(v) => setEditingPerson({ ...editingPerson, fellowshipCohortYear: v === "0" ? 0 : parseInt(v, 10) || 0 })}>
                         <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
                         <SelectContent>
