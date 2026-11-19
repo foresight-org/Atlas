@@ -13,7 +13,7 @@ import { DirectoryLoginForm } from "../components/auth/DirectoryLoginForm";
 import { MapRoleLegend } from "../components/map/MapRoleLegend";
 import { useIsMobile } from "../components/ui/use-mobile";
 import type { PinLocation } from "../components/map/pinAppearance";
-import { FOCUS_COLOR_ORDER, focusColor } from "../styles/focusColors";
+import { FOCUS_COLOR_ORDER, getFocusGradient } from "../styles/focusColors";
 import { APP_NAME, FORESIGHT_LUMA_URL, FORESIGHT_ORG_URL } from "../constants/foresight";
 import { Z_INDEX_MODAL_BACKDROP, Z_INDEX_MODAL_CONTENT } from "../constants/zIndex";
 import { getLastSignedInName } from "../services/identity";
@@ -281,7 +281,7 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
             ? FOCUS_COLOR_ORDER.map((name) => ({
                 id: name,
                 label: name,
-                color: focusColor(name).end,
+                color: getFocusGradient(name),
               }))
             : undefined
         }

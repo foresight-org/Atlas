@@ -10,6 +10,7 @@ import {
   getDisplayFocusTags,
   normalizeCustomFocusTags,
 } from "../data/focusAreas";
+import { focusColor, getFocusGradient } from "../styles/focusColors";
 import { Badge } from "./ui/badge";
 import { cn } from "./ui/utils";
 
@@ -41,7 +42,8 @@ export function FocusTagsDisplay({
         <Badge
           key={tag}
           variant="secondary"
-          className={cn("text-xs font-normal", presetBadgeClassName)}
+          className={cn("border-white/60 text-xs font-medium shadow-sm", presetBadgeClassName)}
+          style={{ background: getFocusGradient(tag), color: focusColor(tag).text }}
         >
           {tag}
         </Badge>

@@ -12,6 +12,7 @@ import { getEffectiveProfileImageUrl } from "../services/profileImageOverride";
 import { formatEventDateShort } from "../utils/eventTiming";
 import { PersonAvatar } from "./PersonAvatar";
 import { getPresetFocusTags } from "../data/focusAreas";
+import { focusColor, getFocusGradient } from "../styles/focusColors";
 
 /** Compact event reference for the map sidebar card (upcoming only). */
 export interface AttendingEvent {
@@ -140,7 +141,12 @@ export function FellowCard({
         {presetFocusTags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {presetFocusTags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs">
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="border-white/60 text-xs font-medium shadow-sm"
+                style={{ background: getFocusGradient(tag), color: focusColor(tag).text }}
+              >
                 {tag}
               </Badge>
             ))}

@@ -26,40 +26,41 @@ export const FOCUS_CLUSTER_KEYS: Array<{ key: string; label: FocusColorName }> =
   { key: "focusUnset", label: "Not yet chosen" },
 ];
 
+/**
+ * Same pastel recipe as the role pins: a light start, a slightly deeper end,
+ * and a muted text color. Mixed pins use the end color, the way program badges do.
+ */
 const FOCUS_COLORS: Record<FocusColorName, { start: string; end: string; text: string }> = {
-  "Secure AI": { start: "#ddd6fe", end: "#4f46e5", text: "#312e81" },
-  Neurotechnology: { start: "#fecdd3", end: "#e11d48", text: "#9f1239" },
-  "Longevity Biotechnology": { start: "#a7f3d0", end: "#059669", text: "#065f46" },
-  Nanotechnology: { start: "#fde68a", end: "#d97706", text: "#92400e" },
-  Space: { start: "#bae6fd", end: "#0284c7", text: "#075985" },
-  "Existential Hope": { start: "#fbcfe8", end: "#c026d3", text: "#86198f" },
-  "Not yet chosen": { start: "#e2e8f0", end: "#94a3b8", text: "#334155" },
+  "Secure AI": { start: "#e8e6ff", end: "#cfc9f7", text: "#4a4578" },
+  Neurotechnology: { start: "#ffe4ee", end: "#f5c6d8", text: "#7a3d55" },
+  "Longevity Biotechnology": { start: "#e5f7ea", end: "#bfe8cc", text: "#2d5a3d" },
+  Nanotechnology: { start: "#fff1e0", end: "#ffd7b0", text: "#8a4e28" },
+  Space: { start: "#e6fbff", end: "#c2eef5", text: "#1a5c68" },
+  "Existential Hope": { start: "#fde8f3", end: "#f6cfe4", text: "#7a3d62" },
+  "Not yet chosen": { start: "#f4f6f8", end: "#dce3ea", text: "#4b5563" },
 };
 
 export function focusColor(name: string): { start: string; end: string; text: string } {
   return FOCUS_COLORS[name as FocusColorName] ?? FOCUS_COLORS["Not yet chosen"];
 }
 
-/** Proportional mix. One area is a gradient; several split the circle by count. */
+export function getFocusGradient(name: string): string {
+  const color = focusColor(name);
+  return `linear-gradient(135deg, ${color.start} 0%, ${color.end} 100%)`;
+}
+
+/**
+ * One area is its gradient. Several areas split the badge into equal pastel
+ * slices, matching the program pins.
+ */
 export function focusMixBackground(counts: Record<string, number>): string {
-  const parts = FOCUS_COLOR_ORDER
-    .map((name) => ({ name, n: Number(counts[name]) || 0 }))
-    .filter((part) => part.n > 0);
-  const sum = parts.reduce((total, part) => total + part.n, 0);
-  if (sum === 0 || parts.length === 0) {
-    const unset = FOCUS_COLORS["Not yet chosen"];
-    return `linear-gradient(135deg, ${unset.start} 0%, ${unset.end} 100%)`;
-  }
-  if (parts.length === 1) {
-    const color = focusColor(parts[0].name);
-    return `linear-gradient(135deg, ${color.start} 0%, ${color.end} 100%)`;
-  }
-  let cursor = 0;
-  const stops = parts.map((part) => {
-    const sweep = (part.n / sum) * 360;
-    const start = cursor;
-    cursor += sweep;
-    return `${focusColor(part.name).end} ${start}deg ${cursor}deg`;
+  const parts = FOCUS_COLOR_ORDER.filter((name) => (Number(counts[name]) || 0) > 0);
+  if (parts.length <= 1) return getFocusGradient(parts[0] || "Not yet chosen");
+  const sweep = 360 / parts.length;
+  const stops = parts.map((name, index) => {
+    const start = index * sweep;
+    const end = (index + 1) * sweep;
+    return `${focusColor(name).end} ${start}deg ${end}deg`;
   });
   return `conic-gradient(from 0deg, ${stops.join(", ")})`;
 }

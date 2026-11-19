@@ -12,7 +12,8 @@ import { Filters, RoleType } from "../types";
 import { Badge } from "./ui/badge";
 import { cn } from "./ui/utils";
 import { getRoleGradient } from "../styles/roleColors";
-import { activeMultiGradient, badgeGradient } from "../styles/gradients";
+import { getFocusGradient } from "../styles/focusColors";
+import { activeMultiGradient } from "../styles/gradients";
 
 interface InlineFiltersProps {
   filters: Filters;
@@ -66,7 +67,6 @@ export function InlineFilters({
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear + 2 - 2017 }, (_, i) => 2017 + i);
   const activeToggle = activeMultiGradient;
-  const activeFocus = badgeGradient;
 
   const toggleProgram = (p: RoleType) => {
     const next = filters.programs.includes(p) ? filters.programs.filter((x) => x !== p) : [...filters.programs, p];
@@ -204,7 +204,7 @@ export function InlineFilters({
           {/* Focus */}
           <QuickRow label="Focus">
             {PRESET_FOCUS_AREAS.map((t) => (
-              <TogglePill key={t} active={filters.focusTags.includes(t)} activeStyle={{ background: activeFocus, border: "1px solid rgba(255,255,255,0.5)" }} onClick={() => toggleFocusTag(t)}>
+              <TogglePill key={t} active={filters.focusTags.includes(t)} activeStyle={{ background: getFocusGradient(t), border: "1px solid rgba(255,255,255,0.5)" }} onClick={() => toggleFocusTag(t)}>
                 {t}
               </TogglePill>
             ))}
