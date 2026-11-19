@@ -483,6 +483,7 @@ function normalizePersonForCreate(input) {
     })(),
     isAlumni: Boolean(input?.isAlumni),
     isPrivate: Boolean(input?.isPrivate),
+    visibleToCommunity: Boolean(input?.visibleToCommunity),
   };
 
   if (!person.fullName) throw new Error("Full name is required.");
@@ -684,6 +685,7 @@ async function createLocalProfile(personInput, password, options = {}) {
   if (community) {
     person.roleType = "Community";
     person.roleTypes = ["Community"];
+    person.visibleToCommunity = false;
     person.primaryNode = "Global";
     person.fellowshipCohortYear = 0;
     person.fellowshipEndYear = null;

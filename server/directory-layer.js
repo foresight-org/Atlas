@@ -3,9 +3,10 @@
 /**
  * Two atlases from one roster.
  *
- * A community account is the outer layer: other community profiles, and
- * nothing from the fellow, grantee, nodee, prize, or team network. An inner
- * account keeps today's atlas and does not see community signups mixed in.
+ * A community account sees other community profiles, the team, and any
+ * inner profile that opted in. Events and RSVPs for those people come too.
+ * Node memory stays on the inner atlas. Inner accounts do not see community
+ * signups mixed into the fellow map.
  * The split happens before a response is sent. The shared cache stores both
  * views and the handler picks one from the signed-in person.
  */
@@ -33,6 +34,13 @@ function layerMapFromRecords(records) {
     layer[person.id] = layerCode(person);
   }
   return layer;
+}
+
+/** Who may appear on the wider community atlas. Private profiles never do. */
+function sharesCommunityAtlas(person) {
+  if (!person?.id || person.isPrivate === true) return false;
+  if (isCommunityPerson(person) || isForesightTeamPerson(person)) return true;
+  return person.visibleToCommunity === true;
 }
 
 function requestedDirectoryLayer(query) {
@@ -66,24 +74,25 @@ function splitDirectory(db) {
     layer[person.id] = layerCode(person);
   }
 
-  const outer = (id) => layer[id] === "c";
+  const communityPeople = people.filter((person) => sharesCommunityAtlas(person));
+  const communityIds = new Set(communityPeople.map((person) => person.id));
   const travel = Array.isArray(db?.travelWindows) ? db.travelWindows : [];
   const rsvps = Array.isArray(db?.rsvps) ? db.rsvps : [];
   const events = Array.isArray(db?.events) ? db.events : [];
 
   const inner = {
-    people: people.filter((person) => person?.id && !outer(person.id)),
-    travelWindows: travel.filter((row) => row?.personId && !outer(row.personId)),
+    people: people.filter((person) => person?.id && !isCommunityPerson(person)),
+    travelWindows: travel.filter((row) => row?.personId && layer[row.personId] !== "c"),
     events,
-    rsvps: rsvps.filter((row) => !row?.personId || !outer(row.personId)),
+    rsvps,
     suggestions: Array.isArray(db?.suggestions) ? db.suggestions : [],
     adminUsers: Array.isArray(db?.adminUsers) ? db.adminUsers : [],
   };
   const community = {
-    people: people.filter((person) => person?.id && outer(person.id)),
-    travelWindows: travel.filter((row) => row?.personId && outer(row.personId)),
-    events: [],
-    rsvps: [],
+    people: communityPeople,
+    travelWindows: travel.filter((row) => row?.personId && communityIds.has(row.personId)),
+    events,
+    rsvps: rsvps.filter((row) => row?.personId && communityIds.has(row.personId)),
     suggestions: [],
     adminUsers: [],
   };
@@ -106,5 +115,6 @@ module.exports = {
   layeredDirectory,
   requestedDirectoryLayer,
   directoryViewFor,
+  sharesCommunityAtlas,
   isCommunityPerson,
 };

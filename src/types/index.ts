@@ -54,6 +54,11 @@ export interface Person {
    */
   isPrivate?: boolean;
   /**
+   * Inner profiles only. When true, this person also appears on the wider
+   * community atlas. Foresight Team is shown there by role. Private still hides them.
+   */
+  visibleToCommunity?: boolean;
+  /**
    * Canonical roster email. Stored server-side only and stripped from the
    * public /api/database payload, so this is normally undefined on the client.
    * Present on the server record for the official roster, dedupe, and links.

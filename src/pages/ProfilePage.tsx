@@ -123,6 +123,7 @@ const EMPTY_PERSON: Person = {
   currentlyLookingFor: "",
   isAlumni: false,
   isPrivate: false,
+  visibleToCommunity: false,
   profileImageUrl: null,
 };
 
@@ -1155,6 +1156,29 @@ export function ProfilePage({
                     You’re hidden from the map and directory. You can still RSVP,
                     check in, and edit this profile. Save profile to apply.
                   </p>
+                ) : null}
+                {draft.roleType === "Foresight Team" ? (
+                  <p className="rounded-2xl border border-teal-200/80 bg-teal-50 px-4 py-3 text-sm text-teal-950">
+                    Your profile is on the wider Foresight community atlas as well as this one.
+                    Private above still hides you from both.
+                  </p>
+                ) : null}
+                {draft.roleType !== "Community" && draft.roleType !== "Foresight Team" ? (
+                  <Field
+                    label="Wider community"
+                    description="Off by default. Turn this on to show your profile to Foresight community accounts. Node memory stays internal."
+                  >
+                    <Select
+                      value={draft.visibleToCommunity ? "community" : "internal"}
+                      onValueChange={(value) => updateDraft("visibleToCommunity", value === "community")}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="internal">Internal atlas only</SelectItem>
+                        <SelectItem value="community">Also visible to the wider community</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
                 ) : null}
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <Button

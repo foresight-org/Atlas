@@ -209,7 +209,7 @@ export function AppHeader({
               Map
             </button>
 
-            {communityLayer ? null : <div className="relative" ref={menuRef}>
+            <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setNodeMenuOpen(!nodeMenuOpen)}
                 className={`px-4 py-2 rounded-lg transition-all text-sm sm:text-base border inline-flex items-center gap-1.5 ${
@@ -263,7 +263,7 @@ export function AppHeader({
                   </button>
                 </div>
               )}
-            </div>}
+            </div>
 
             {/* Connections intentionally omitted from the header — surfaced in the profile dialog instead. */}
 
@@ -612,7 +612,7 @@ export function AppHeader({
                     Map
                   </button>
                 </li>
-                {communityLayer ? null : <><li>
+                <li>
                   <button
                     onClick={() => {
                       navigate("/berlin");
@@ -656,7 +656,7 @@ export function AppHeader({
                   >
                     Global programming
                   </button>
-                </li></>}
+                </li>
                 {suggestFormUrl && (
                   <li className="pt-2 mt-2 border-t border-gray-100">
                     <a

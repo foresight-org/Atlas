@@ -285,6 +285,7 @@ function rowToPersonRecord(orderedRow, rowNumber) {
     currentlyLookingFor: normalizeString(orderedRow[idx("currentlyLookingFor")])
       .replace(/\s+/g, " ")
       .trim(),
+    visibleToCommunity: normalizeBoolean(orderedRow[idx("visibleToCommunity")]),
   };
 
   if (!person.id && person.fullName) {
@@ -337,6 +338,7 @@ function personRecordToRow(record) {
     person.isPrivate ? "TRUE" : "FALSE",
     person.email ?? "",
     person.currentlyLookingFor ?? "",
+    person.visibleToCommunity ? "TRUE" : "FALSE",
   ];
 }
 

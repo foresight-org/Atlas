@@ -309,6 +309,7 @@ function normalizePerson(
     currentlyLookingFor: (p.currentlyLookingFor ?? "").replace(/\s+/g, " ").trim(),
     isAlumni: p.isAlumni ?? false,
     isPrivate: p.isPrivate ?? false,
+    visibleToCommunity: p.visibleToCommunity === true,
   } as Person;
 }
 

@@ -89,9 +89,9 @@ export function CommunityAccountPage({ onCreated, onSignInInstead }: CommunityAc
             Create a Foresight community account
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-gray-600">
-            This account is for the wider community. You can find and connect with
-            other community accounts. Fellows, grantees, and nodees stay on a
-            separate atlas.
+            This account is for the wider community. You can find other community
+            accounts, the Foresight team, and the people who choose to be visible
+            here, and you can RSVP to programming. Node memory stays internal.
           </p>
         </div>
 

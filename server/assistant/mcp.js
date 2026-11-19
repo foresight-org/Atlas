@@ -7,18 +7,27 @@
 
 const { publicCard, bookingUrl } = require("./directory");
 const { isCommunityPerson } = require("../role-types");
+const { sharesCommunityAtlas } = require("../directory-layer");
 
 /**
  * The assistant sees the same layer as the website. A community account
- * cannot ask for fellows, grantees, nodees, or node programming.
+ * sees community profiles, the team, opted-in fellows, and programming.
+ * Node memory is not in this snapshot.
  */
 function scopedCommunity(member, community) {
   const outer = isCommunityPerson(member?.person);
-  const people = (community.publicPeople || []).filter(
-    (person) => isCommunityPerson(person) === outer,
-  );
-  if (!outer) return { ...community, publicPeople: people };
-  return { ...community, publicPeople: people, events: [], rsvps: [] };
+  if (!outer) {
+    const people = (community.publicPeople || []).filter((person) => !isCommunityPerson(person));
+    return { ...community, publicPeople: people };
+  }
+  const people = (community.publicPeople || []).filter((person) => sharesCommunityAtlas(person));
+  const ids = new Set(people.map((person) => person.id));
+  return {
+    ...community,
+    publicPeople: people,
+    events: community.events || [],
+    rsvps: (community.rsvps || []).filter((row) => row?.personId && ids.has(row.personId)),
+  };
 }
 
 const PREFACE =

@@ -710,15 +710,9 @@ export default function App() {
   const signedInRole = getPrimaryRoleType(signedInPerson);
   const communityAccount = signedInRole === "Community";
   const teamViewer = signedInRole === "Foresight Team";
-  // Nodes, programming, and the inner roster stay off the community view,
-  // including when team is only looking.
+  // Nodes stay off the community view. Programming and RSVPs stay on.
   const communityLayer =
     communityAccount || (teamViewer && (layerChoice === "community" || servedLayer === "community"));
-
-  useEffect(() => {
-    if (!communityLayer) return;
-    if (route === "/berlin" || route === "/sf" || route === "/global") navigate("/");
-  }, [communityLayer, route, navigate]);
 
   useEffect(() => {
     setMapLocationNudgeHidden(false);

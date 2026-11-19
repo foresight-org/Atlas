@@ -101,6 +101,7 @@ function normalizePerson(input) {
     currentlyLookingFor: normalizeLookingFor(input?.currentlyLookingFor),
     isAlumni: normalizeBoolean(input?.isAlumni),
     isPrivate: normalizeBoolean(input?.isPrivate),
+    visibleToCommunity: normalizeBoolean(input?.visibleToCommunity),
   };
 
   if (!person.id) {
@@ -192,6 +193,7 @@ function normalizePersonForCreate(input) {
     currentlyLookingFor: normalizeLookingFor(input?.currentlyLookingFor),
     isAlumni: normalizeBoolean(input?.isAlumni),
     isPrivate: normalizeBoolean(input?.isPrivate),
+    visibleToCommunity: false,
     email: normalizeString(input?.email),
   };
 
@@ -284,6 +286,7 @@ async function syncPersonToSheets(person, authContext) {
   if (isCommunityPerson(match.person)) {
     enrichedPerson.roleType = "Community";
     enrichedPerson.roleTypes = ["Community"];
+    enrichedPerson.visibleToCommunity = false;
   } else if (isCommunityPerson(enrichedPerson)) {
     throw new Error("This profile stays on the fellow and grantee atlas.");
   }

@@ -49,8 +49,8 @@ export function CommunityWelcome({ fullName, onDismiss }: CommunityWelcomeProps)
             </h2>
             <div id="community-welcome-body" className="mt-4 space-y-3 text-sm leading-relaxed text-gray-700">
               <p>
-                This atlas can help you connect with others in the community.
-                It does not include fellows, grantees, or nodees.
+                This atlas can help you connect with others in the community, and with the Foresight team.
+                Fellows and grantees appear here only when they choose to be visible. Node memory stays internal.
               </p>
               <p>
                 To gain access to the fellow and grantee network, apply to be a fellow or a grantee.
