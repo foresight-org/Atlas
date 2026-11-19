@@ -903,7 +903,7 @@ export function ProfilePage({
                     label="Role"
                     description={
                       lockedPrimaryRole(draft) === "Foresight Team"
-                        ? "You’re an admin. One of your rights is switching between the internal atlas and the community view."
+                        ? "You’re on the team, and you’re an admin. The map still says Team. One admin right is switching between the internal atlas and the community view."
                         : canAlsoBeNodee(draft)
                           ? "Your fellow or grantee role comes from your invite. You can also be a nodee."
                           : "Set by your invite or by Foresight. It can’t be changed here."

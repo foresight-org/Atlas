@@ -728,6 +728,8 @@ export default function App() {
   const teamViewer = signedInRole === "Foresight Team";
   // The admin's choice wins immediately. A community account has no choice.
   const communityLayer = communityAccount || (teamViewer && layerChoice === "community");
+  // Until we know who is signed in, keep the member table off so it cannot flash on the community view.
+  const viewerResolved = !identity || Boolean(signedInPerson) || (!isLoading && people.length > 0);
 
   useEffect(() => {
     setMapLocationNudgeHidden(false);
@@ -780,7 +782,7 @@ export default function App() {
       initialNode={(route === "/berlin" ? "berlin" : route === "/sf" ? "sf" : "global") as NodeSlug}
       people={people}
       identity={identity}
-      communityView={communityLayer}
+      communityView={communityLayer || !viewerResolved}
       onNavigateHome={() => navigate("/")}
       onNavigateNode={(slug) => navigate(`/${slug}`)}
       onShowEventOnMap={handleShowEventOnMap}
