@@ -115,48 +115,140 @@ async function sendMail(opts) {
 }
 
 /**
+ * The atlas on paper. Same quiet card as the app: white on a cool gray,
+ * a blue-to-violet bar, near-black button. Georgia stands in for the
+ * heading face, Helvetica for the body — mail clients drop web fonts.
+ */
+const PAPER = "#f3f5f7";
+const INK = "#111827";
+const MUTED = "#4b5563";
+const FAINT = "#6b7280";
+const LINE = "#e5e7eb";
+const BUTTON = "#030213";
+const SITE = "https://atlas.foresight.org";
+const LOGO = `${SITE}/brand/foresight-logo.png`;
+
+function givenName(fullName) {
+  const name = String(fullName || "").trim();
+  if (!name || name.includes("@")) return "";
+  return name.split(/\s+/)[0];
+}
+
+/**
+ * @param {{ subject: string, preheader: string, title: string, body: string, button: string, href: string, note: string }} copy
+ */
+function renderAtlasEmail(copy) {
+  const href = escapeAttr(copy.href);
+  const text = [
+    copy.title,
+    "",
+    copy.body,
+    "",
+    copy.button,
+    copy.href,
+    "",
+    copy.note,
+    "",
+    "Foresight Institute · Foresight Atlas",
+    SITE,
+  ].join("\n");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>${escapeHtml(copy.subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:${PAPER};color:${INK};">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(copy.preheader)}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAPER};">
+    <tr>
+      <td align="center" style="padding:28px 16px;">
+        <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:520px;background:#ffffff;border:1px solid ${LINE};border-radius:20px;overflow:hidden;">
+          <tr>
+            <td style="height:6px;line-height:6px;font-size:0;background-color:#c4b5fd;background-image:linear-gradient(90deg,#bfdbfe 0%,#c4b5fd 100%);">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="padding:28px 32px 0 32px;">
+              <img src="${LOGO}" alt="Foresight Institute" width="148" style="display:block;width:148px;height:auto;border:0;" />
+              <p style="margin:22px 0 0 0;font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:${FAINT};">Foresight Atlas</p>
+              <h1 style="margin:8px 0 0 0;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.15;font-weight:normal;letter-spacing:-0.02em;color:${INK};">${escapeHtml(copy.title)}</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:14px 32px 0 32px;">
+              <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:${MUTED};">${escapeHtml(copy.body)}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px 0 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:${BUTTON};border-radius:10px;">
+                    <a href="${href}" style="display:inline-block;padding:12px 20px;font-family:Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;letter-spacing:0.01em;text-decoration:none;color:#ffffff;">${escapeHtml(copy.button)}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px 0 32px;">
+              <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.45;color:${FAINT};">${escapeHtml(copy.note)}</p>
+              <p style="margin:10px 0 0 0;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.45;color:${FAINT};word-break:break-all;">
+                <a href="${href}" style="color:#0369a1;">${href}</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px 26px 32px;">
+              <p style="margin:0;padding-top:18px;border-top:1px solid ${LINE};font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.45;color:${FAINT};">Foresight Institute · Foresight Atlas</p>
+              <p style="margin:4px 0 0 0;font-family:Helvetica,Arial,sans-serif;font-size:12px;">
+                <a href="${SITE}" style="color:#0369a1;">atlas.foresight.org</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject: copy.subject, text, html };
+}
+
+/**
  * @param {"claim" | "reset"} kind
  * @param {string} link
  * @param {string} [fullName]
  */
+function withName(fullName, sentence) {
+  const name = givenName(fullName);
+  return name ? `Hi ${name}, ${sentence}` : sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
 function renderAccessEmail(kind, link, fullName) {
-  const name = String(fullName || "").trim() || "there";
   if (kind === "reset") {
-    return {
+    return renderAtlasEmail({
       subject: "Reset your Foresight Atlas password",
-      text: [
-        `Hi ${name},`,
-        "",
-        "Use this one-time link to set a new password for Foresight Atlas:",
-        link,
-        "",
-        "Valid for 24 hours. If you did not request this, you can ignore it.",
-        "",
-        "— Foresight Atlas",
-      ].join("\n"),
-      html: `<p>Hi ${escapeHtml(name)},</p>
-<p>Use this one-time link to set a new password for <strong>Foresight Atlas</strong>:</p>
-<p><a href="${escapeAttr(link)}">${escapeHtml(link)}</a></p>
-<p style="color:#666;font-size:14px">Valid for 24 hours. If you did not request this, you can ignore it.</p>`,
-    };
+      preheader: "This link expires in 24 hours.",
+      title: "New password",
+      body: withName(fullName, "this link sets a new password for your atlas."),
+      button: "Set a new password",
+      href: link,
+      note: "It expires in 24 hours. If you did not ask for it, you can ignore it.",
+    });
   }
-  return {
-    subject: "Your Foresight Atlas claim link",
-    text: [
-      `Hi ${name},`,
-      "",
-      "You're on Foresight Atlas. Use this one-time link to set your password:",
-      link,
-      "",
-      "If you did not request this, you can ignore it.",
-      "",
-      "— Foresight Atlas",
-    ].join("\n"),
-    html: `<p>Hi ${escapeHtml(name)},</p>
-<p>You're on <strong>Foresight Atlas</strong>. Use this one-time link to set your password:</p>
-<p><a href="${escapeAttr(link)}">${escapeHtml(link)}</a></p>
-<p style="color:#666;font-size:14px">If you did not request this, you can ignore it.</p>`,
-  };
+  return renderAtlasEmail({
+    subject: "Your Foresight Atlas link",
+    preheader: "Set the password for your atlas account.",
+    title: "Set your password",
+    body: withName(fullName, "this link sets the password for your atlas account."),
+    button: "Set password",
+    href: link,
+    note: "If you did not ask for it, you can ignore it.",
+  });
 }
 
 function escapeHtml(value) {
@@ -178,24 +270,15 @@ function escapeAttr(value) {
  * @param {string} [fullName]
  */
 function renderSignInEmail(link, fullName) {
-  const name = String(fullName || "").trim() || "there";
-  return {
+  return renderAtlasEmail({
     subject: "Sign in to Foresight Atlas",
-    text: [
-      `Hi ${name},`,
-      "",
-      "Use this link to sign in to Foresight Atlas. No password needed:",
-      link,
-      "",
-      "It expires in 24 hours. If you did not ask for it, you can ignore it.",
-      "",
-      "— Foresight Atlas",
-    ].join("\n"),
-    html: `<p>Hi ${escapeHtml(name)},</p>
-<p>Use this link to sign in to <strong>Foresight Atlas</strong>. No password needed:</p>
-<p><a href="${escapeAttr(link)}">Sign in</a></p>
-<p style="color:#666;font-size:14px">It expires in 24 hours. If you did not ask for it, you can ignore it.</p>`,
-  };
+    preheader: "This link expires in 24 hours.",
+    title: "Sign in",
+    body: withName(fullName, "this link opens your atlas."),
+    button: "Sign in",
+    href: link,
+    note: "It expires in 24 hours. If you did not ask for it, you can ignore it.",
+  });
 }
 
 /**
@@ -243,4 +326,5 @@ module.exports = {
   sendAccessMagicLink,
   sendSignInLink,
   renderAccessEmail,
+  renderAtlasEmail,
 };

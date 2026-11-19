@@ -388,9 +388,6 @@ export function PublicAtlasPage({ onOpenPrivacy }: PublicAtlasPageProps) {
               <h2 className="mt-3 text-xl font-semibold tracking-tight text-gray-900">
                 Sign in
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                Fellows, grantees, prize winners, nodees, and guests invited after an event. Use the email on your account.
-              </p>
             </div>
 
             <DirectoryLoginForm initialName={getLastSignedInName()} />

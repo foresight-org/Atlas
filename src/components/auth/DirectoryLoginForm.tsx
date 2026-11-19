@@ -61,7 +61,16 @@ export function DirectoryLoginForm({
             <p className="text-sm leading-6 text-gray-600">{description}</p>
           ) : null}
         </div>
-      ) : null}
+      ) : sent ? null : (
+        <div className="space-y-1.5 text-center">
+          <p className="text-sm leading-relaxed text-gray-600">
+            Fellows, grantees, nodees, alumni, and our larger community.
+          </p>
+          <p className="text-sm leading-relaxed text-gray-500">
+            By invite only. If you were invited, search your email for Foresight Atlas.
+          </p>
+        </div>
+      )}
 
       {sent ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-6 text-emerald-950">
@@ -87,9 +96,6 @@ export function DirectoryLoginForm({
               className="h-11 pl-10"
             />
           </div>
-          <p className="text-sm leading-6 text-gray-600">
-            We email a link that signs you in. Accounts are by invite, so the address has to be the one we already have.
-          </p>
         </div>
       )}
 

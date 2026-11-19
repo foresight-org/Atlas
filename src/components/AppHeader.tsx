@@ -696,17 +696,6 @@ export function AppHeader({
                     <button
                       type="button"
                       onClick={() => {
-                        onSignOut();
-                        closeMobileMenu();
-                      }}
-                      className="min-h-[44px] rounded-xl border border-sky-200 bg-white px-3 text-sm font-medium text-sky-700 hover:bg-sky-100 active:bg-sky-200 transition-colors inline-flex items-center justify-center gap-2"
-                    >
-                      <LogOut className="size-4" />
-                      Sign out
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
                         navigate("/connections");
                         closeMobileMenu();
                       }}
@@ -714,6 +703,17 @@ export function AppHeader({
                     >
                       <Bookmark className="size-3.5 shrink-0" aria-hidden />
                       Connections
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSignOut();
+                        closeMobileMenu();
+                      }}
+                      className="min-h-[44px] rounded-xl border border-sky-200 bg-white px-3 text-sm font-medium text-sky-700 hover:bg-sky-100 active:bg-sky-200 transition-colors inline-flex items-center justify-center gap-2"
+                    >
+                      <LogOut className="size-4" />
+                      Sign out
                     </button>
                     <button
                       type="button"

@@ -236,14 +236,11 @@ function buildFocusShowcasePopupHtml(marker: PinLocation): string {
   const count = marker.people.length;
   const countLabel = count === 1 ? "1 person" : `${count} people`;
   const counts = marker.focusCounts || {};
-  const rows = FOCUS_COLOR_ORDER.filter((name) => (counts[name] || 0) > 0)
+  const chips = FOCUS_COLOR_ORDER.filter((name) => (counts[name] || 0) > 0)
     .map((name) => {
       const color = focusColor(name);
       const style = `background:linear-gradient(135deg, ${color.start} 0%, ${color.end} 100%);color:${color.text}`;
-      return `<div class="flex items-center justify-between gap-3 px-3 py-2 border-b border-gray-100 last:border-b-0">
-        <span class="text-[11px] px-1.5 py-0.5 rounded font-medium shrink-0" style="${style}">${escapeHtml(name)}</span>
-        <span class="text-sm font-medium text-gray-800 tabular-nums">${counts[name]}</span>
-      </div>`;
+      return `<span class="map-node-popup__focus-chip" style="${style}">${escapeHtml(name)} · ${counts[name]}</span>`;
     })
     .join("");
   return `<div class="map-node-popup__inner bg-white">
@@ -251,7 +248,7 @@ function buildFocusShowcasePopupHtml(marker: PinLocation): string {
       <h4 class="font-semibold text-gray-900 text-sm leading-tight sm:text-base font-heading">${cityCountry}</h4>
       <p class="text-xs text-gray-500 mt-0.5">${countLabel}</p>
     </div>
-    <div class="map-node-popup__list">${rows}</div>
+    <div class="map-node-popup__focus">${chips}</div>
   </div>`;
 }
 

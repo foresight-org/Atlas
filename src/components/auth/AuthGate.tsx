@@ -17,8 +17,7 @@ interface AuthGateProps {
 /**
  * AuthGate — the front door when someone lands on a gated route unsigned-in.
  *
- * Check-in keeps its own line. Everywhere else is the same door:
- * fellows, grantees, prize winners, nodees, and invited guests.
+ * Check-in keeps its own line. Everywhere else is the same invite-only door.
  */
 export function AuthGate({ route }: AuthGateProps) {
   const checkInCopy = useMemo(() => getCheckInAuthCopy(route), [route]);
@@ -69,11 +68,6 @@ export function AuthGate({ route }: AuthGateProps) {
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-gray-900">
             {checkInCopy ? checkInCopy.heroTitle : "Sign in"}
           </h1>
-          {!checkInCopy ? (
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Fellows, grantees, prize winners, nodees, and guests invited after an event.
-            </p>
-          ) : null}
         </div>
 
         <div className="rounded-3xl border border-gray-200 bg-white/90 p-6 shadow-xl backdrop-blur-sm sm:p-7">

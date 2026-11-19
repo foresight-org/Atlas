@@ -559,8 +559,13 @@ export function GlobeMap({
     let closeTimer: ReturnType<typeof setTimeout> | null = null;
     let holdUntil = 0;
     let openKey = "";
+    /*
+     * A finger can report hover. Auto-close is for a real mouse, so a tap
+     * does not open the card and then treat the lift as leaving it.
+     */
     const prefersHover =
-      typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
     const cancelClose = () => {
       if (closeTimer) {
@@ -606,14 +611,25 @@ export function GlobeMap({
       if (!element) return;
       const mapRect = map.getContainer().getBoundingClientRect();
       const pop = element.getBoundingClientRect();
-      const padX = 24;
+      const padX = 16;
       let dx = 0;
       let dy = 0;
+      const roomY = mapRect.height - paddingY * 2;
+      if (pop.height > roomY && pop.height > 0) {
+        /* Taller than the map: keep the top on screen. The list scrolls. */
+        dy = pop.top - (mapRect.top + paddingY);
+      } else {
+        if (pop.bottom > mapRect.bottom - paddingY) dy = pop.bottom - (mapRect.bottom - paddingY);
+        if (pop.top - dy < mapRect.top + paddingY) dy = pop.top - (mapRect.top + paddingY);
+      }
       if (pop.right > mapRect.right - padX) dx = pop.right - (mapRect.right - padX);
       if (pop.left - dx < mapRect.left + padX) dx = pop.left - (mapRect.left + padX);
-      if (pop.bottom > mapRect.bottom - paddingY) dy = pop.bottom - (mapRect.bottom - paddingY);
-      if (pop.top - dy < mapRect.top + paddingY) dy = pop.top - (mapRect.top + paddingY);
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      /* A seating pan is not the user zooming out. Don't let it drop the card. */
+      programmaticCamera = true;
+      map.once("moveend", () => {
+        programmaticCamera = false;
+      });
       map.panBy([dx, dy], { duration: 280 });
     };
 
@@ -1112,9 +1128,24 @@ export function GlobeMap({
      * idle spin + drag used to call querySourceFeatures every frame and
      * delete pins that were only missing from a partial tile result.
      */
+    let zoomSeen = map.getZoom();
     map.on("zoom", () => {
-      /* The card is for a close-up pin. A zoom-out, including a face switch, drops it. */
-      if (map.getZoom() < MIN_ZOOM_ON_PIN_CLICK) dismissPopupRef.current();
+      const zoom = map.getZoom();
+      const zoomingOut = zoom < zoomSeen - 0.05;
+      zoomSeen = zoom;
+      /*
+       * A face switch zooms back to the globe and should drop the card.
+       * The flight into a pin, and the small pan that seats a tall card,
+       * move the camera too — those must leave the card up.
+       */
+      if (
+        zoomingOut &&
+        !programmaticCamera &&
+        performance.now() >= holdUntil &&
+        zoom < MIN_ZOOM_ON_PIN_CLICK
+      ) {
+        dismissPopupRef.current();
+      }
       requestSync(true);
     });
     map.on("zoomend", () => requestSync(true));

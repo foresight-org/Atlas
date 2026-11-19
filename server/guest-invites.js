@@ -18,7 +18,7 @@ const { parseGuestCsv, normalizeEmail } = require("./guest-csv");
 const { issueSignInToken, SIGNIN_INVITE_TTL_MS } = require("./directory-auth");
 const { addOtherEmail, findRecordsByEmail, accountEmails, maskEmail } = require("./account-emails");
 const { isCommunityPerson, isForesightTeamPerson } = require("./role-types");
-const { mailConfigured, sendMail, fromAddress } = require("./mail");
+const { mailConfigured, sendMail, fromAddress, renderAtlasEmail } = require("./mail");
 const { normalizeName } = require("./realdata-store");
 
 const SLICE = 4;
@@ -43,63 +43,34 @@ function eventPhrase(eventName) {
   return name ? name : "a Foresight event";
 }
 
+function named(firstName, sentence) {
+  const name = String(firstName || "").trim();
+  return name ? `Hi ${name}, ${sentence}` : sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
 function renderInvite(guest, link, eventName) {
-  const hello = guest.firstName || "there";
   const where = eventPhrase(eventName);
-  const subject = "Your invite to the Foresight community";
-  const text = [
-    `Hi ${hello},`,
-    "",
-    `You were at ${where}. This is your personal link to a Foresight Atlas community account, so you can meet other people who have been to our events.`,
-    link,
-    "",
-    "After you sign in, you can also connect an assistant: https://atlas.foresight.org/assistant",
-    "",
-    "The link signs you in. It works for 30 days. If you were not expecting this, you can ignore it.",
-    "",
-    "— Foresight Atlas",
-  ].join("\n");
-  const html = `<p>Hi ${escapeHtml(hello)},</p>
-<p>You were at ${escapeHtml(where)}. This is your personal link to a Foresight Atlas community account, so you can meet other people who have been to our events.</p>
-<p><a href="${escapeAttr(link)}">Sign in</a></p>
-<p>After you sign in, you can also <a href="https://atlas.foresight.org/assistant">connect an assistant</a>.</p>
-<p style="color:#666;font-size:14px">The link signs you in. It works for 30 days. If you were not expecting this, you can ignore it.</p>
-<p>— Foresight Atlas</p>`;
-  return { subject, text, html };
+  return renderAtlasEmail({
+    subject: "Your invite to the Foresight community",
+    preheader: "A sign-in link for Foresight Atlas.",
+    title: "You're invited",
+    body: named(guest.firstName, `you were at ${where}. This link opens a community account.`),
+    button: "Sign in",
+    href: link,
+    note: "The link works for 30 days. If you were not expecting this, you can ignore it.",
+  });
 }
 
 function renderReminder(guest, link) {
-  const hello = guest.firstName || "there";
-  const subject = "Still want to join the Foresight community?";
-  const text = [
-    `Hi ${hello},`,
-    "",
-    "If you already claimed your Foresight Atlas account, sign in at https://atlas.foresight.org and ignore the link below.",
-    "",
-    "If you still want to join, your invite is here:",
-    link,
-    "",
-    "It is a way to meet other people who have been to Foresight events.",
-    "",
-    "— Foresight Atlas",
-  ].join("\n");
-  const html = `<p>Hi ${escapeHtml(hello)},</p>
-<p>If you already claimed your Foresight Atlas account, <a href="https://atlas.foresight.org">sign in</a> and ignore the link below.</p>
-<p>If you still want to join, <a href="${escapeAttr(link)}">your invite is here</a>. It is a way to meet other people who have been to Foresight events.</p>
-<p>— Foresight Atlas</p>`;
-  return { subject, text, html };
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function escapeAttr(value) {
-  return escapeHtml(value).replace(/'/g, "&#39;");
+  return renderAtlasEmail({
+    subject: "Your Foresight Atlas invite",
+    preheader: "Your sign-in link is still good.",
+    title: "Your invite is still here",
+    body: named(guest.firstName, "if you already signed in, you can ignore this."),
+    button: "Sign in",
+    href: link,
+    note: "The link works for 30 days.",
+  });
 }
 
 function classify(guest, records) {
@@ -130,25 +101,17 @@ function resolutionFor(guest, resolutions) {
  * @param {{ csv: string, eventName?: string, dryRun?: boolean, offset?: number, origin: string, resolutions?: Array<{ email: string, action: string }> }} input
  */
 function renderExistingSignIn(fullName, link) {
-  const hello = fullName || "there";
-  const subject = "Sign in to your Foresight Atlas account";
-  const text = [
-    `Hi ${hello},`,
-    "",
-    "A guest list had your name with a different email. We kept that on the account you already have, instead of making a second one.",
-    "",
-    "This link signs you in:",
-    link,
-    "",
-    "It works for 30 days. If this was not you, you can ignore it.",
-    "",
-    "— Foresight Atlas",
-  ].join("\n");
-  const html = `<p>Hi ${escapeHtml(hello)},</p>
-<p>A guest list had your name with a different email. We kept that on the account you already have, instead of making a second one.</p>
-<p><a href="${escapeAttr(link)}">Sign in</a></p>
-<p style="color:#666;font-size:14px">It works for 30 days. If this was not you, you can ignore it.</p>`;
-  return { subject, text, html };
+  const name = String(fullName || "").trim().split(/\s+/)[0];
+  const sentence = "a guest list had your name on another email. This link opens the account you already have.";
+  return renderAtlasEmail({
+    subject: "Sign in to Foresight Atlas",
+    preheader: "This link opens the account you already have.",
+    title: "Sign in",
+    body: name ? `Hi ${name}, ${sentence}` : sentence.charAt(0).toUpperCase() + sentence.slice(1),
+    button: "Sign in",
+    href: link,
+    note: "It works for 30 days. If this was not you, you can ignore it.",
+  });
 }
 
 async function resolveNameTaken(guest, record, action, loaded, records, origin, eventName) {
