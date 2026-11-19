@@ -17,6 +17,7 @@ Atlas is two layers. A community account sees community profiles, the team, fell
 - [Foresight Institute](https://www.foresight.org/)
 - [Fellowship](https://foresight.org/engage/fellowship/)
 - [Grants](https://foresight.org/engage/grants/)
+- [Foresight on Index](https://index.network/l/6c06ee69-4e7c-45ba-882c-b07653e1f3f9): mutual introductions only. Joining does not open the fellow atlas, and the roster is not uploaded
 
 ## Boundaries
 

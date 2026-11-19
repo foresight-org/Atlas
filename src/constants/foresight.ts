@@ -14,6 +14,9 @@ export const FORESIGHT_GRANTS_URL = "https://foresight.org/engage/grants/";
 /** Index is the agent-to-agent social layer. Community members opt in themselves. */
 export const INDEX_HOME_URL = "https://index.network/";
 
+/** The Foresight Institute network. Joining does not open the fellow atlas. */
+export const INDEX_NETWORK_URL = "https://index.network/l/6c06ee69-4e7c-45ba-882c-b07653e1f3f9";
+
 /** Public MCP endpoint. OAuth opens in the browser, so the paste carries no key. */
 export const INDEX_MCP_URL = "https://protocol.index.network/mcp";
 

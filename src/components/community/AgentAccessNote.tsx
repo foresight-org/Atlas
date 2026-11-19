@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { Check, ChevronDown, Copy } from "lucide-react";
 import { atlasConnectorUrl } from "../../services/agentHandoff";
+import { INDEX_NETWORK_URL } from "../../constants/foresight";
 import { buildFullPath } from "../../utils/router";
 
 interface AgentAccessNoteProps {
@@ -61,6 +62,10 @@ export function AgentAccessNote({ className }: AgentAccessNoteProps) {
             </button>
           </div>
           <p className="text-[11px] text-gray-500">
+            <a className="underline underline-offset-2" href={INDEX_NETWORK_URL} target="_blank" rel="noopener noreferrer">
+              Foresight on Index
+            </a>
+            {" — introductions stay mutual, and this does not open the fellow network. "}
             On Claude Team or Enterprise, an org owner has to add the connector first.
             Updating your password disconnects assistants.{" "}
             <a className="underline underline-offset-2" href={buildFullPath("/llms.txt")}>llms.txt</a>
