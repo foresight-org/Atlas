@@ -793,9 +793,10 @@ async function redeemSignInLink(token) {
   }
 
   const updated = cloneRecord(match);
+  const needsWrite = !updated.auth.claimedAt || updated.auth.mustChangePassword;
   updated.auth.mustChangePassword = false;
-  if (!updated.auth.claimedAt) {
-    updated.auth.claimedAt = new Date().toISOString();
+  if (!updated.auth.claimedAt) updated.auth.claimedAt = new Date().toISOString();
+  if (needsWrite) {
     await upsertRealDataRecord(loaded.sheets, loaded.sheetName, updated);
   }
 

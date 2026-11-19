@@ -234,6 +234,8 @@ export function GlobeMap({
   /** True while a face/filter change is flying back out, so a hover cannot reopen the card mid-flight. */
   const suppressPopupRef = useRef(false);
   const popupReturnRef = useRef(0);
+  /** Bumped when a face switch takes the camera, so a pin flight cannot reopen its card afterwards. */
+  const cameraGenerationRef = useRef(0);
   const globeCameraRef = useRef<GlobeCamera>(IDLE_CAMERA);
   const onMemorySelectRef = useRef(onMemorySelect);
   const onMemoryClearRef = useRef(onMemoryClear);
@@ -489,11 +491,13 @@ export function GlobeMap({
     };
 
     const runCameraMove = (move: () => void, after?: () => void) => {
+      const generation = ++cameraGenerationRef.current;
       stopSpinLoop();
       userInteracting = true;
       pinGestureActive = false;
       programmaticCamera = true;
       map.once("moveend", () => {
+        if (generation !== cameraGenerationRef.current) return;
         programmaticCamera = false;
         userInteracting = false;
         after?.();
@@ -1108,7 +1112,11 @@ export function GlobeMap({
      * idle spin + drag used to call querySourceFeatures every frame and
      * delete pins that were only missing from a partial tile result.
      */
-    map.on("zoom", () => requestSync(true));
+    map.on("zoom", () => {
+      /* The card is for a close-up pin. A zoom-out, including a face switch, drops it. */
+      if (map.getZoom() < MIN_ZOOM_ON_PIN_CLICK) dismissPopupRef.current();
+      requestSync(true);
+    });
     map.on("zoomend", () => requestSync(true));
     map.on("idle", () => requestSync(true));
     map.on("sourcedata", (event) => {
@@ -1207,6 +1215,7 @@ export function GlobeMap({
         return;
       }
       releasePopupForReframe(true);
+      cameraGenerationRef.current += 1;
       stopIdleSpinRef.current();
       const opening = map.getContainer().getBoundingClientRect();
       map.easeTo({

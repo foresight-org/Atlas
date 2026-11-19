@@ -114,14 +114,11 @@ export function ClaimPage({
     magicStarted.current = true;
     setIsSubmitting(true);
     void onMagicSignIn(token).then((result) => {
-      if (result.ok) {
-        onClaimed();
-        return;
-      }
+      if (result.ok) return;
       setIsSubmitting(false);
       setPeek({ status: "error", message: result.error || "This sign-in link could not be used." });
     });
-  }, [peek, token, onMagicSignIn, onClaimed]);
+  }, [peek, token, onMagicSignIn]);
 
   const canSubmit = useMemo(() => {
     if (peek.status !== "ready") return false;

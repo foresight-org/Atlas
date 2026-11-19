@@ -576,6 +576,10 @@ export default function App() {
       setIdentityState(getIdentity());
       setSelfPerson(result.person);
       armWelcomeLetter(result.person.id);
+      const returnUrl = consumePostLoginReturnUrl();
+      if (returnUrl) navigate(returnUrl);
+      else if (personNeedsLocation(result.person)) navigate(profileLocationSetupPath());
+      else navigate("/");
       return { ok: true as const };
     } catch (error) {
       return {
@@ -583,7 +587,7 @@ export default function App() {
         error: error instanceof Error ? error.message : "This sign-in link could not be used.",
       };
     }
-  }, []);
+  }, [navigate]);
 
   const handleClaimProfile = useCallback(
     async (token: string, newPassword: string, email?: string) => {

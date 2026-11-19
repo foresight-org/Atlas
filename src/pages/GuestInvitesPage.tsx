@@ -65,7 +65,7 @@ export function GuestInvitesPage({ identity, teamViewer, resolving, onNavigateHo
       setPreview(next);
       const choices: Record<string, NameClashAction> = {};
       for (const row of next.preview) {
-        if (row.action === "name_taken") choices[row.email] = "link";
+        if (row.action === "name_taken") choices[row.email] = "skip";
       }
       setClashes(choices);
     } catch (err) {
@@ -270,7 +270,7 @@ export function GuestInvitesPage({ identity, teamViewer, resolving, onNavigateHo
                             type="button"
                             onClick={() => setClashes((current) => ({ ...current, [row.email]: action }))}
                             className={`min-h-10 rounded-full px-3 text-xs font-medium ${
-                              (clashes[row.email] || "link") === action
+                              (clashes[row.email] || "skip") === action
                                 ? "bg-gray-900 text-white"
                                 : "bg-white text-gray-700 ring-1 ring-gray-200"
                             }`}
