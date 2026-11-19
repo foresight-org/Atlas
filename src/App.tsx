@@ -562,6 +562,23 @@ export default function App() {
     [navigate],
   );
 
+  const handleCommunityCreated = useCallback((result: {
+    person: Person;
+    auth: { token: string; expiresAt: string; mustChangePassword: boolean };
+  }) => {
+    persistIdentity({
+      personId: result.person.id,
+      fullName: result.person.fullName,
+      token: result.auth.token,
+      expiresAt: result.auth.expiresAt,
+      mustChangePassword: result.auth.mustChangePassword,
+    });
+    setIdentityState(getIdentity());
+    setSelfPerson(result.person);
+    armWelcomeLetter(result.person.id);
+    navigate("/");
+  }, [navigate]);
+
   const handleClaimProfile = useCallback(
     async (token: string, newPassword: string, email?: string) => {
       try {
@@ -867,19 +884,7 @@ export default function App() {
     <PrivacyPage onNavigateHome={() => navigate("/")} />
   ) : isCommunityRoute ? (
     <CommunityAccountPage
-      onCreated={(result) => {
-        persistIdentity({
-          personId: result.person.id,
-          fullName: result.person.fullName,
-          token: result.auth.token,
-          expiresAt: result.auth.expiresAt,
-          mustChangePassword: result.auth.mustChangePassword,
-        });
-        setIdentityState(getIdentity());
-        setSelfPerson(result.person);
-        armWelcomeLetter(result.person.id);
-        navigate("/");
-      }}
+      onCreated={handleCommunityCreated}
       onSignInInstead={() => navigate("/")}
     />
   ) : isAssistantRoute ? (
@@ -962,10 +967,15 @@ export default function App() {
         {isPublicHome ? (
           <PublicAtlasPage
             onSignIn={handleDirectorySignIn}
+            onCommunityCreated={handleCommunityCreated}
             onOpenPrivacy={() => navigate("/privacy")}
           />
         ) : (
-          <AuthGate route={route} onSignIn={handleDirectorySignIn} />
+          <AuthGate
+            route={route}
+            onSignIn={handleDirectorySignIn}
+            onCommunityCreated={handleCommunityCreated}
+          />
         )}
         <Toaster />
       </>

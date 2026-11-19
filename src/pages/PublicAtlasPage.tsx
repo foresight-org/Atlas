@@ -9,15 +9,18 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Loader2, LogIn, X } from "lucide-react";
 import foresightIcon from "../assets/Foresight_RGB_Icon_Black.png?url";
 import foresightLogo from "../assets/Foresight_RGB_Logo_Black.png?url";
+import { CommunitySignupForm } from "../components/auth/CommunitySignupForm";
 import { DirectoryLoginForm } from "../components/auth/DirectoryLoginForm";
 import { MapRoleLegend } from "../components/map/MapRoleLegend";
 import { useIsMobile } from "../components/ui/use-mobile";
 import type { PinLocation } from "../components/map/pinAppearance";
 import { APP_NAME, FORESIGHT_LUMA_URL, FORESIGHT_ORG_URL } from "../constants/foresight";
-import { buildFullPath } from "../utils/router";
 import { Z_INDEX_MODAL_BACKDROP, Z_INDEX_MODAL_CONTENT } from "../constants/zIndex";
 import { getLastSignedInName } from "../services/identity";
+import type { DirectoryAuthResult } from "../services/memberAuth";
 import type { RoleType } from "../types";
+
+type LoginStep = "choice" | "inner" | "community";
 
 const GlobeMap = lazy(() =>
   import("../components/map/GlobeMap").then((mod) => ({ default: mod.GlobeMap })),
@@ -45,6 +48,7 @@ interface PublicAtlasPageProps {
     username: string,
     password: string,
   ) => Promise<{ ok: boolean; error?: string }>;
+  onCommunityCreated: (result: DirectoryAuthResult) => void;
   /** Open the short privacy notice (SPA navigate from signed-out home). */
   onOpenPrivacy?: () => void;
 }
@@ -134,12 +138,23 @@ function pinsToMarkers(pins: AtlasPreviewPin[]): PinLocation[] {
   });
 }
 
-export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProps) {
+export function PublicAtlasPage({ onSignIn, onCommunityCreated, onOpenPrivacy }: PublicAtlasPageProps) {
   const isMobile = useIsMobile();
   const [preview, setPreview] = useState<AtlasPreviewFile | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [globeFailed, setGlobeFailed] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [loginStep, setLoginStep] = useState<LoginStep>("choice");
+
+  const openLogin = () => {
+    setLoginStep("choice");
+    setShowLogin(true);
+  };
+
+  const closeLogin = () => {
+    setShowLogin(false);
+    setLoginStep("choice");
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -261,24 +276,16 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
         </div>
       </header>
 
-      {/* Thumb-zone CTA — glass, matching Events; centered above attribution */}
+      {/* Thumb-zone CTA — one Sign in; the overlay asks which door */}
       <div className="pointer-events-none absolute inset-x-0 bottom-[max(4.75rem,12vh)] z-20 flex justify-center px-4 sm:bottom-[max(5.5rem,14vh)]">
         <button
           type="button"
-          onClick={() => setShowLogin(true)}
+          onClick={openLogin}
           className="pointer-events-auto inline-flex min-h-12 min-w-[11.5rem] items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/15 px-7 text-base font-semibold text-white shadow-[0_16px_48px_-12px_rgba(0,0,0,0.55)] backdrop-blur-xl transition duration-200 hover:border-white/40 hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:min-h-11 sm:min-w-[13rem] sm:px-8"
         >
           <LogIn className="size-4 shrink-0 opacity-90" aria-hidden />
           Sign in
         </button>
-      </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.5rem,4vh)] z-20 flex justify-center px-4">
-        <a
-          href={buildFullPath("/community")}
-          className="pointer-events-auto text-sm font-medium text-white/90 underline decoration-white/40 underline-offset-4 hover:text-white"
-        >
-          Create a Foresight community account
-        </a>
       </div>
 
       {showLogin ? (
@@ -287,17 +294,17 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
           style={{ zIndex: Z_INDEX_MODAL_BACKDROP }}
           role="dialog"
           aria-modal="true"
-          aria-label="Community sign-in"
-          onClick={() => setShowLogin(false)}
+          aria-label="Sign in"
+          onClick={closeLogin}
         >
           <div
-            className="relative w-full max-w-md rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-7"
+            className="relative max-h-[min(92dvh,40rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-7"
             style={{ zIndex: Z_INDEX_MODAL_CONTENT }}
             onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
-              onClick={() => setShowLogin(false)}
+              onClick={closeLogin}
               className="absolute right-3 top-3 inline-flex size-10 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
               aria-label="Close sign-in"
             >
@@ -306,14 +313,76 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
             <div className="mb-5 flex flex-col items-center text-center pr-6">
               <img src={foresightIcon} alt="" className="size-10 object-contain" />
               <h2 className="mt-3 text-xl font-semibold tracking-tight text-gray-900">
-                Welcome back
+                {loginStep === "choice"
+                  ? "Sign in"
+                  : loginStep === "inner"
+                    ? "Welcome back"
+                    : "Community account"}
               </h2>
+              {loginStep === "choice" ? (
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                  Are you a Foresight fellow, grantee, prize winner, or nodee?
+                </p>
+              ) : null}
+              {loginStep === "community" ? (
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                  Create an account for the wider Foresight community.
+                </p>
+              ) : null}
             </div>
-            <DirectoryLoginForm
-              initialName={getLastSignedInName()}
-              onSubmit={onSignIn}
-              showAccountRecovery
-            />
+
+            {loginStep === "choice" ? (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setLoginStep("inner")}
+                  className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-gray-900 px-4 text-sm font-semibold text-white transition hover:bg-gray-800"
+                >
+                  Yes — fellow, grantee, or nodee
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLoginStep("community")}
+                  className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
+                >
+                  No — community account
+                </button>
+              </div>
+            ) : null}
+
+            {loginStep === "inner" ? (
+              <>
+                <DirectoryLoginForm
+                  initialName={getLastSignedInName()}
+                  onSubmit={onSignIn}
+                  showAccountRecovery
+                />
+                <button
+                  type="button"
+                  onClick={() => setLoginStep("choice")}
+                  className="mt-4 w-full text-center text-sm font-medium text-teal-800 underline-offset-2 hover:underline"
+                >
+                  Back
+                </button>
+              </>
+            ) : null}
+
+            {loginStep === "community" ? (
+              <>
+                <CommunitySignupForm
+                  onCreated={onCommunityCreated}
+                  onSignInInstead={() => setLoginStep("inner")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setLoginStep("choice")}
+                  className="mt-2 w-full text-center text-sm font-medium text-teal-800 underline-offset-2 hover:underline"
+                >
+                  Back
+                </button>
+              </>
+            ) : null}
+
             {onOpenPrivacy ? (
               <p className="mt-4 text-center text-[11px] leading-none text-gray-400">
                 <button

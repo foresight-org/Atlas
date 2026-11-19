@@ -1196,6 +1196,7 @@ export function GlobeMap({
     const map = mapRef.current;
     if (!ready || !map || surface !== "nodes") return;
     const layer = mountNodeMemoryLayer(map, memoryPlaces, memoryArcs, {
+      iconUrl,
       onSelect: (id) => onMemorySelectRef.current?.(id),
       onClear: () => onMemoryClearRef.current?.(),
     });
@@ -1205,7 +1206,7 @@ export function GlobeMap({
       layer.destroy();
       if (memoryLayerRef.current === layer) memoryLayerRef.current = null;
     };
-  }, [ready, surface, memoryPlaces, memoryArcs]);
+  }, [ready, surface, memoryPlaces, memoryArcs, iconUrl]);
 
   useEffect(() => {
     if (!ready) return;

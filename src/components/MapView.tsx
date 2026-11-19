@@ -34,6 +34,7 @@ import {
   type MapProjection,
 } from "./map/globeMapFlag";
 import { MapProjectionToggle } from "./map/MapProjectionToggle";
+import { FlatNodeMarkers } from "./map/FlatNodeMarkers";
 import { AtlasSurfaceToggle, type AtlasSurface } from "./nodes/AtlasSurfaceToggle";
 import { NodeLegend } from "./nodes/NodeLegend";
 import { NodeMemoryPanel } from "./nodes/NodeMemoryPanel";
@@ -723,15 +724,11 @@ export function MapView({
       setSelectedPerson(null);
       setHoverPersonId(null);
       setPreviewMarker(null);
-      if (globeAvailable && !globeFailed && projection !== "globe") {
-        setProjection("globe");
-        writeMapProjection("globe");
-      }
       return;
     }
     setSelectedPlaceId(null);
     if (!isMobile) setIsSidebarOpen(true);
-  }, [globeAvailable, globeFailed, isMobile, projection]);
+  }, [isMobile]);
 
   const closeMemory = useCallback(() => {
     const id = selectedPlaceId;
@@ -1240,19 +1237,33 @@ export function MapView({
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               noWrap={false}
             />
-            <FitBounds markers={markers} skipIfMarkerSelected={selectedMarker !== null} isMobile={isMobile} />
-            <ZoomToMarker marker={selectedMarker} onlyWhenFromList={selectedMarkerFromList} />
-            <ZoomToHoverPreview marker={previewMarker} />
+            {surface === "people" ? (
+              <>
+                <FitBounds markers={markers} skipIfMarkerSelected={selectedMarker !== null} isMobile={isMobile} />
+                <ZoomToMarker marker={selectedMarker} onlyWhenFromList={selectedMarkerFromList} />
+                <ZoomToHoverPreview marker={previewMarker} />
+              </>
+            ) : null}
             <MapResizer
               isSidebarOpen={isSidebarOpen}
               sidebarWidth={useCustomSidebarLayout ? sidebarResize.width : undefined}
             />
-            <ImperativeMarkerClusters
-              markers={markers}
-              foresightIcon={foresightIcon}
-              onMarkerClick={handleMarkerClick}
-              onPersonClick={handlePersonClick}
-            />
+            {surface === "people" ? (
+              <ImperativeMarkerClusters
+                markers={markers}
+                foresightIcon={foresightIcon}
+                onMarkerClick={handleMarkerClick}
+                onPersonClick={handlePersonClick}
+              />
+            ) : (
+              <FlatNodeMarkers
+                places={MEMORY_PLACES}
+                iconUrl={foresightIcon}
+                selectedId={selectedPlaceId}
+                onSelect={setSelectedPlaceId}
+                onClear={closeMemory}
+              />
+            )}
           </MapContainer>
         )}
 
@@ -1262,20 +1273,6 @@ export function MapView({
 
         {showNodes ? <AtlasSurfaceToggle surface={surface} onChange={chooseSurface} /> : null}
         {showNodes && surface === "nodes" ? <NodeLegend /> : null}
-        {showNodes && surface === "nodes" && !showGlobe ? (
-          <div className="atlas-node-fallback">
-            <p>The node view is drawn on the globe. This browser couldn’t start it.</p>
-            <ul>
-              {MEMORY_PLACES.filter((place) => place.kind !== "conversation").map((place) => (
-                <li key={place.id}>
-                  <button type="button" onClick={() => setSelectedPlaceId(place.id)}>
-                    {place.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
         {showNodes && surface === "nodes" && isMobile && selectedPlace ? (
           <div className="atlas-node-sheet">
             <NodeMemoryPanel

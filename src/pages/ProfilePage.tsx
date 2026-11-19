@@ -10,8 +10,7 @@ import { PRESET_FOCUS_AREAS, CUSTOM_FOCUS_AREAS_ENABLED, getPresetFocusTags, get
 import { FocusTagsDisplay } from "../components/FocusTagsDisplay";
 import { CustomFocusInput } from "../components/CustomFocusInput";
 import { PersonContactLinks } from "../components/PersonContactLinks";
-import { AssistantConnectCard } from "../components/assistant/AssistantConnectCard";
-import { AgentHandoffCard } from "../components/community/AgentHandoffCard";
+import { AgentAccessNote } from "../components/community/AgentAccessNote";
 import { getPersonRSVPs } from "../services/rsvp";
 import { fetchRSVPsFromAPI } from "../services/rsvp";
 import { subscribeToDataChanges } from "../services/sync";
@@ -874,16 +873,10 @@ export function ProfilePage({
               {draft.roleType === "Community" ? null : (
                 <NanowheelHero personId={draft.id} refreshTick={nanoTick} />
               )}
-              {draft.roleType === "Community" ? null : <AssistantConnectCard />}
             </div>
 
             <OpenToMeetProfileStatus person={draft} />
           </div>
-          {draft.roleType === "Community" ? (
-            <div className="px-4 py-6 sm:px-8 lg:px-10">
-              <AgentHandoffCard />
-            </div>
-          ) : null}
 
           <div className="grid min-w-0 gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.85fr)] lg:px-10 lg:py-10 lg:gap-12">
             <section className="min-w-0 space-y-8">
@@ -1395,6 +1388,9 @@ export function ProfilePage({
 
           {/* Bottom actions: Sign out and Save profile */}
           <div className="border-t border-gray-200 bg-gray-50/80 px-4 py-5 sm:px-8 lg:px-10">
+            <div className="mb-4">
+              <AgentAccessNote />
+            </div>
             <div className="flex min-w-0 flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-4">
               <Button
                 variant="outline"

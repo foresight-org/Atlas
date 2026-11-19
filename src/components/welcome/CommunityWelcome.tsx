@@ -8,7 +8,7 @@
 
 import * as DialogPrimitive from "@radix-ui/react-dialog@1.1.6";
 import foresightIconUrl from "../../assets/Foresight_RGB_Icon_Black.png?url";
-import { AgentHandoffCard } from "../community/AgentHandoffCard";
+import { AgentAccessNote } from "../community/AgentAccessNote";
 import { Button } from "../ui/button";
 import { Dialog, DialogOverlay, DialogPortal } from "../ui/dialog";
 import {
@@ -74,13 +74,12 @@ export function CommunityWelcome({ fullName, onDismiss }: CommunityWelcomeProps)
               </li>
             </ul>
 
-            <div className="mt-6">
-              <AgentHandoffCard />
-            </div>
-
             <Button type="button" className="mt-6 min-h-11 w-full" onClick={onDismiss}>
               Enter the community
             </Button>
+            <div className="mt-4 flex justify-center">
+              <AgentAccessNote />
+            </div>
           </div>
         </DialogPrimitive.Content>
       </DialogPortal>
