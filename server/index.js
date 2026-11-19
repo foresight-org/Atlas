@@ -44,6 +44,7 @@ const calendarEventsHandler = require("../api/calendar-events");
 const rsvpsHandler = require("../api/rsvps");
 const checkinsHandler = require("../api/checkins");
 const communityStatsHandler = require("../api/community-stats");
+const guestInvitesHandler = require("../api/guest-invites");
 const suggestionsHandler = require("../api/suggestions");
 const pollsHandler = require("../api/polls");
 const connectionsHandler = require("../api/connections");
@@ -251,25 +252,12 @@ app.post("/api/member-register", async (req, res) => {
 
 /**
  * POST /api/member-community
- * Open signup for the outer atlas. The role is always Community.
+ * Closed. Community accounts are created from an event guest list.
  */
-app.post("/api/member-community", async (req, res) => {
-  try {
-    const { registerCommunityAccount } = require("./community-signup");
-    const result = await registerCommunityAccount(req, createProfile);
-    return res.json(result);
-  } catch (error) {
-    const status =
-      error && typeof error === "object" && typeof error.statusCode === "number"
-        ? error.statusCode
-        : 400;
-    if (status === 429 && error.retryAfterSec) {
-      res.setHeader("Retry-After", String(error.retryAfterSec));
-    }
-    res.status(status).json({
-      error: error instanceof Error ? error.message : "Could not create this account",
-    });
-  }
+app.post("/api/member-community", async (_req, res) => {
+  return res.status(403).json({
+    error: "Community accounts are by invite. Use the claim link from your event email.",
+  });
 });
 
 /**
@@ -352,6 +340,7 @@ app.get("/api/calendar-events", calendarEventsHandler);
 app.all("/api/rsvps", rsvpsHandler);
 app.all("/api/checkins", checkinsHandler);
 app.all("/api/community-stats", communityStatsHandler);
+app.all("/api/guest-invites", guestInvitesHandler);
 app.all("/api/suggestions", suggestionsHandler);
 app.all("/api/polls", pollsHandler);
 app.all("/api/connections", connectionsHandler);

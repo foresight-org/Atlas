@@ -78,6 +78,7 @@ import { consumePostLoginReturnUrl } from "./services/returnUrl";
 import { WelcomeLetter } from "./components/welcome/WelcomeLetter";
 import { CommunityWelcome } from "./components/welcome/CommunityWelcome";
 import { CommunityAccountPage } from "./pages/CommunityAccountPage";
+import { GuestInvitesPage } from "./pages/GuestInvitesPage";
 import { AssistantConnectPage } from "./pages/AssistantConnectPage";
 import {
   armWelcomeLetter,
@@ -250,7 +251,7 @@ export default function App() {
   // Keep SPA routing in sync with browser history
   useEffect(() => {
     const handlePop = () => setRoute(getRoutePath());
-    const knownRoutes = ["/", "/berlin", "/sf", "/global", "/profile", "/connections", "/calendar", "/open-to-meet", "/stats", "/claim", "/join", "/access", "/privacy", "/polls", "/community", "/assistant"];
+    const knownRoutes = ["/", "/berlin", "/sf", "/global", "/profile", "/connections", "/calendar", "/open-to-meet", "/stats", "/guests", "/claim", "/join", "/access", "/privacy", "/polls", "/community", "/assistant"];
     const current = getRoutePath();
     // Check-in routes are dynamic (/checkin/berlin, /checkin/sf, /checkin/global)
     // so we match them with a prefix rather than an exact list entry. Bare
@@ -561,23 +562,6 @@ export default function App() {
     [navigate],
   );
 
-  const handleCommunityCreated = useCallback((result: {
-    person: Person;
-    auth: { token: string; expiresAt: string; mustChangePassword: boolean };
-  }) => {
-    persistIdentity({
-      personId: result.person.id,
-      fullName: result.person.fullName,
-      token: result.auth.token,
-      expiresAt: result.auth.expiresAt,
-      mustChangePassword: result.auth.mustChangePassword,
-    });
-    setIdentityState(getIdentity());
-    setSelfPerson(result.person);
-    armWelcomeLetter(result.person.id);
-    navigate("/");
-  }, [navigate]);
-
   const handleClaimProfile = useCallback(
     async (token: string, newPassword: string, email?: string) => {
       try {
@@ -707,6 +691,7 @@ export default function App() {
   /** Privacy notice — public, no sign-in required. */
   const isPrivacyRoute = route === "/privacy";
   const isCommunityRoute = route === "/community";
+  const isGuestsRoute = route === "/guests";
   const isAssistantRoute = route === "/assistant";
   const isMapRoute = route === "/" || route === "";
   /** Magic-link onboarding + privacy — no chrome; the form needs the full viewport. */
@@ -810,6 +795,14 @@ export default function App() {
     <StatsPage
       identity={identity}
       onNavigateHome={() => navigate("/")}
+      onOpenGuestInvites={() => navigate("/guests")}
+    />
+  ) : isGuestsRoute ? (
+    <GuestInvitesPage
+      identity={identity}
+      teamViewer={teamViewer}
+      resolving={Boolean(identity) && isLoading && !signedInPerson}
+      onNavigateHome={() => navigate("/")}
     />
   ) : isPollsAdminRoute ? (
     <PollsPage
@@ -885,7 +878,6 @@ export default function App() {
     <PrivacyPage onNavigateHome={() => navigate("/")} />
   ) : isCommunityRoute ? (
     <CommunityAccountPage
-      onCreated={handleCommunityCreated}
       onSignInInstead={() => navigate("/")}
     />
   ) : isAssistantRoute ? (
@@ -971,14 +963,12 @@ export default function App() {
         {isPublicHome ? (
           <PublicAtlasPage
             onSignIn={handleDirectorySignIn}
-            onCommunityCreated={handleCommunityCreated}
             onOpenPrivacy={() => navigate("/privacy")}
           />
         ) : (
           <AuthGate
             route={route}
             onSignIn={handleDirectorySignIn}
-            onCommunityCreated={handleCommunityCreated}
           />
         )}
         <Toaster />

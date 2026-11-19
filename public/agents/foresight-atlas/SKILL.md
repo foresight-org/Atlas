@@ -26,7 +26,7 @@ Call only these tools. They are read-only and already limited to the signed-in l
 - `open_to_meet` — people who published a booking link
 - `people_by_focus` — requires a focus string of at least two characters
 
-A community account receives community profiles and the team. It does not receive fellows, grantees, prize winners, or nodees. A fellow account does not receive the community signup list. Changing the Atlas password disconnects every assistant.
+A community account receives community profiles and the team. It does not receive fellows, grantees, prize winners, or nodees. A fellow account does not receive the community account list. Community accounts are invite-only, sent after an event. Changing the Atlas password disconnects every assistant.
 
 ## Quality
 

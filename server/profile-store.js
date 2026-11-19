@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const {
   normalizeString,
   normalizeStringArray,
@@ -436,7 +437,51 @@ async function createProfile(personInput, password, options = {}) {
   };
 }
 
+/**
+ * A community row with no password. The claim link is what sets one.
+ * Email is the identity. A matching name that belongs to someone else is refused.
+ *
+ * @param {{ fullName: string, email: string }} personInput
+ * @param {{ sheets: unknown, sheetName: string, records: unknown[] }} loaded
+ */
+async function createUnclaimedCommunityProfile(personInput, loaded) {
+  const person = normalizePersonForCreate({
+    fullName: personInput.fullName,
+    email: personInput.email,
+    roleType: "Community",
+    primaryNode: "Global",
+    fellowshipCohortYear: 0,
+    isAlumni: false,
+  });
+  person.roleType = "Community";
+  person.roleTypes = ["Community"];
+  person.primaryNode = "Global";
+  person.fellowshipCohortYear = 0;
+  person.fellowshipEndYear = null;
+  person.isAlumni = false;
+  person.visibleToCommunity = false;
+  person.email = assertAccountEmail(person.email);
+  const digest = crypto.createHash("sha256").update(person.email).digest("hex").slice(0, 16);
+  person.id = `realdata-community-${digest}`;
+
+  const enrichedPerson = await enrichLocation(person);
+  const now = new Date().toISOString();
+  const record = {
+    person: enrichedPerson,
+    auth: {
+      passwordHash: "",
+      mustChangePassword: false,
+      claimedAt: "",
+      lastProfileUpdatedAt: now,
+      lastPasswordChangedAt: "",
+    },
+  };
+  const inserted = await upsertRealDataRecord(loaded.sheets, loaded.sheetName, record);
+  return inserted;
+}
+
 module.exports = {
   saveProfile,
   createProfile,
+  createUnclaimedCommunityProfile,
 };

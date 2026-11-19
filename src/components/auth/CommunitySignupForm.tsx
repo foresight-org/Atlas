@@ -1,4 +1,7 @@
 /**
+ * Retired. Public community signup is closed.
+ * Event guests are invited from /guests.
+ *
  * Community account form — used inside the public sign-in overlay and on /community.
  */
 

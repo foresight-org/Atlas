@@ -228,23 +228,9 @@ async function handleCommunityRegister(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  try {
-    const { registerCommunityAccount } = require("../server/community-signup");
-    const { createProfile } = require("../server/profile-store");
-    const result = await registerCommunityAccount(req, createProfile);
-    return res.status(200).json(result);
-  } catch (error) {
-    const statusCode =
-      error && typeof error === "object" && typeof error.statusCode === "number"
-        ? error.statusCode
-        : 400;
-    if (statusCode === 429 && error.retryAfterSec) {
-      res.setHeader("Retry-After", String(error.retryAfterSec));
-    }
-    return res.status(statusCode).json({
-      error: error instanceof Error ? error.message : "Could not create this account",
-    });
-  }
+  return res.status(403).json({
+    error: "Community accounts are by invite. Use the claim link from your event email.",
+  });
 }
 
 const ROUTES = {

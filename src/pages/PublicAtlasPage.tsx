@@ -9,7 +9,6 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Loader2, LogIn, X } from "lucide-react";
 import foresightIcon from "../assets/Foresight_RGB_Icon_Black.png?url";
 import foresightLogo from "../assets/Foresight_RGB_Logo_Black.png?url";
-import { CommunitySignupForm } from "../components/auth/CommunitySignupForm";
 import { DirectoryLoginForm } from "../components/auth/DirectoryLoginForm";
 import { MapRoleLegend } from "../components/map/MapRoleLegend";
 import { useIsMobile } from "../components/ui/use-mobile";
@@ -17,10 +16,7 @@ import type { PinLocation } from "../components/map/pinAppearance";
 import { APP_NAME, FORESIGHT_LUMA_URL, FORESIGHT_ORG_URL } from "../constants/foresight";
 import { Z_INDEX_MODAL_BACKDROP, Z_INDEX_MODAL_CONTENT } from "../constants/zIndex";
 import { getLastSignedInName } from "../services/identity";
-import type { DirectoryAuthResult } from "../services/memberAuth";
 import type { RoleType } from "../types";
-
-type LoginStep = "choice" | "inner" | "community";
 
 const GlobeMap = lazy(() =>
   import("../components/map/GlobeMap").then((mod) => ({ default: mod.GlobeMap })),
@@ -48,7 +44,6 @@ interface PublicAtlasPageProps {
     username: string,
     password: string,
   ) => Promise<{ ok: boolean; error?: string }>;
-  onCommunityCreated: (result: DirectoryAuthResult) => void;
   /** Open the short privacy notice (SPA navigate from signed-out home). */
   onOpenPrivacy?: () => void;
 }
@@ -138,23 +133,15 @@ function pinsToMarkers(pins: AtlasPreviewPin[]): PinLocation[] {
   });
 }
 
-export function PublicAtlasPage({ onSignIn, onCommunityCreated, onOpenPrivacy }: PublicAtlasPageProps) {
+export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProps) {
   const isMobile = useIsMobile();
   const [preview, setPreview] = useState<AtlasPreviewFile | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [globeFailed, setGlobeFailed] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const [loginStep, setLoginStep] = useState<LoginStep>("choice");
 
-  const openLogin = () => {
-    setLoginStep("choice");
-    setShowLogin(true);
-  };
-
-  const closeLogin = () => {
-    setShowLogin(false);
-    setLoginStep("choice");
-  };
+  const openLogin = () => setShowLogin(true);
+  const closeLogin = () => setShowLogin(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -313,75 +300,18 @@ export function PublicAtlasPage({ onSignIn, onCommunityCreated, onOpenPrivacy }:
             <div className="mb-5 flex flex-col items-center text-center pr-6">
               <img src={foresightIcon} alt="" className="size-10 object-contain" />
               <h2 className="mt-3 text-xl font-semibold tracking-tight text-gray-900">
-                {loginStep === "choice"
-                  ? "Sign in"
-                  : loginStep === "inner"
-                    ? "Welcome back"
-                    : "Community account"}
+                Sign in
               </h2>
-              {loginStep === "choice" ? (
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                  Are you a Foresight fellow, grantee, prize winner, or nodee?
-                </p>
-              ) : null}
-              {loginStep === "community" ? (
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                  Create an account for the wider Foresight community.
-                </p>
-              ) : null}
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                Community accounts arrive by invite after an event. If you have one, sign in with your name.
+              </p>
             </div>
 
-            {loginStep === "choice" ? (
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => setLoginStep("inner")}
-                  className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-gray-900 px-4 text-sm font-semibold text-white transition hover:bg-gray-800"
-                >
-                  Yes — fellow, grantee, or nodee
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLoginStep("community")}
-                  className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
-                >
-                  No — community account
-                </button>
-              </div>
-            ) : null}
-
-            {loginStep === "inner" ? (
-              <>
-                <DirectoryLoginForm
-                  initialName={getLastSignedInName()}
-                  onSubmit={onSignIn}
-                  showAccountRecovery
-                />
-                <button
-                  type="button"
-                  onClick={() => setLoginStep("choice")}
-                  className="mt-4 w-full text-center text-sm font-medium text-teal-800 underline-offset-2 hover:underline"
-                >
-                  Back
-                </button>
-              </>
-            ) : null}
-
-            {loginStep === "community" ? (
-              <>
-                <CommunitySignupForm
-                  onCreated={onCommunityCreated}
-                  onSignInInstead={() => setLoginStep("inner")}
-                />
-                <button
-                  type="button"
-                  onClick={() => setLoginStep("choice")}
-                  className="mt-2 w-full text-center text-sm font-medium text-teal-800 underline-offset-2 hover:underline"
-                >
-                  Back
-                </button>
-              </>
-            ) : null}
+            <DirectoryLoginForm
+              initialName={getLastSignedInName()}
+              onSubmit={onSignIn}
+              showAccountRecovery
+            />
 
             {onOpenPrivacy ? (
               <p className="mt-4 text-center text-[11px] leading-none text-gray-400">

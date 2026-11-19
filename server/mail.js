@@ -9,10 +9,15 @@
  * Env (only if you later want email delivery):
  *   RESEND_API_KEY, SMTP_FROM, SMTP_REPLY_TO
  *   AUTH_REVEAL_LINKS=false — force hide on-screen links even without mail
+ *
+ * The default From uses foresightmatchmaker.app. That domain is already
+ * verified on the Resend account Library of Things and Matchmaker share,
+ * so Atlas can send without a new DNS change on foresight.org.
+ * Set SMTP_FROM once a foresight.org subdomain is verified.
  */
 
 const RESEND_API = "https://api.resend.com/emails";
-const DEFAULT_FROM = "Foresight Atlas <noreply@foresight.org>";
+const DEFAULT_FROM = "Foresight Atlas <noreply@foresightmatchmaker.app>";
 const SEND_TIMEOUT_MS = 8_000;
 const RETRY_WAIT_MS = 400;
 
@@ -50,16 +55,13 @@ function sleep(ms) {
 }
 
 /**
- * @param {{ to: string, subject: string, text: string, html?: string, idempotencyKey?: string }} opts
- * @returns {Promise<{ sent: true } | { sent: false, reason: "no_smtp" | "smtp_error" | "quota" }>}
+ * @param {{ to: string, subject: string, text: string, html?: string, idempotencyKey?: string, scheduledAt?: string }} opts
+ * @returns {Promise<{ sent: true, id: string | null } | { sent: false, reason: "no_smtp" | "smtp_error" | "quota" }>}
  */
 async function sendMail(opts) {
   const key = process.env.RESEND_API_KEY?.trim();
   if (!key) {
-    console.info("[mail] RESEND_API_KEY unset; would send:", {
-      to: opts.to,
-      subject: opts.subject,
-    });
+    console.info("[mail] RESEND_API_KEY unset; skipped a send:", opts.subject);
     return { sent: false, reason: "no_smtp" };
   }
 
@@ -70,6 +72,7 @@ async function sendMail(opts) {
     subject: opts.subject,
     text: opts.text,
     html: opts.html,
+    ...(opts.scheduledAt ? { scheduled_at: opts.scheduledAt } : {}),
   });
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -87,7 +90,10 @@ async function sendMail(opts) {
         body: payload,
         signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
       });
-      if (res.ok) return { sent: true };
+      if (res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return { sent: true, id: typeof body?.id === "string" ? body.id : null };
+      }
       const detail = await res.text().catch(() => "");
       console.error("[mail] Resend rejected:", res.status, detail.slice(0, 500));
       if (res.status === 429) return { sent: false, reason: "quota" };
@@ -195,6 +201,7 @@ module.exports = {
   revealLinksAllowed,
   magicLinkMode,
   sendMail,
+  fromAddress,
   sendAccessMagicLink,
   renderAccessEmail,
 };

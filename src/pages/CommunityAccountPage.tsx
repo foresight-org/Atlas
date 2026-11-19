@@ -1,26 +1,22 @@
 /**
- * CommunityAccountPage — deep-link fallback for /community.
- *
- * The public home sign-in overlay is the primary path. This page keeps the
- * same form for shared links, as a card over the soft wash rather than a wall of copy.
+ * /community — the old signup URL.
+ * Accounts are created from an event guest list, then claimed from the email.
  */
 
 import foresightIcon from "../assets/Foresight_RGB_Icon_Black.png?url";
-import { CommunitySignupForm } from "../components/auth/CommunitySignupForm";
 import { AgentAccessNote } from "../components/community/AgentAccessNote";
+import { Button } from "../components/ui/button";
 import {
   FORESIGHT_FELLOWSHIP_URL,
   FORESIGHT_GRANTS_URL,
   FORESIGHT_ORG_WWW_URL,
 } from "../constants/foresight";
-import type { DirectoryAuthResult } from "../services/memberAuth";
 
 interface CommunityAccountPageProps {
-  onCreated: (result: DirectoryAuthResult) => void;
   onSignInInstead: () => void;
 }
 
-export function CommunityAccountPage({ onCreated, onSignInInstead }: CommunityAccountPageProps) {
+export function CommunityAccountPage({ onSignInInstead }: CommunityAccountPageProps) {
   return (
     <main className="min-h-[100svh] overflow-y-auto bg-[linear-gradient(165deg,rgba(209,250,229,0.55)_0%,rgba(255,255,255,0.96)_42%,rgba(165,243,252,0.45)_100%)] px-5 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-md">
@@ -38,12 +34,15 @@ export function CommunityAccountPage({ onCreated, onSignInInstead }: CommunityAc
             Community account
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-gray-600">
-            For the wider Foresight community. Fellows and grantees appear only when they choose to.
+            These accounts are sent after a Foresight event. Open the claim link in that email,
+            set a password, then sign in here with your name.
           </p>
         </div>
 
         <div className="rounded-3xl border border-gray-200 bg-white/90 p-6 shadow-xl">
-          <CommunitySignupForm onCreated={onCreated} onSignInInstead={onSignInInstead} />
+          <Button type="button" className="min-h-12 w-full" onClick={onSignInInstead}>
+            Sign in
+          </Button>
         </div>
 
         <p className="mt-6 text-center text-sm leading-relaxed text-gray-600">

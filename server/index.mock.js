@@ -271,23 +271,10 @@ app.post("/api/member-register", async (req, res) => {
   }
 });
 
-app.post("/api/member-community", async (req, res) => {
-  try {
-    const { registerCommunityAccount } = require("./community-signup");
-    const result = await registerCommunityAccount(req, createLocalProfile);
-    return res.json(result);
-  } catch (error) {
-    const status =
-      error && typeof error === "object" && typeof error.statusCode === "number"
-        ? error.statusCode
-        : 400;
-    if (status === 429 && error.retryAfterSec) {
-      res.setHeader("Retry-After", String(error.retryAfterSec));
-    }
-    return res.status(status).json({
-      error: error instanceof Error ? error.message : "Could not create this account",
-    });
-  }
+app.post("/api/member-community", async (_req, res) => {
+  return res.status(403).json({
+    error: "Community accounts are by invite. Use the claim link from your event email.",
+  });
 });
 
 app.post("/api/member-invite-claim", async (req, res) => {

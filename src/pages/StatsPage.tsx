@@ -49,9 +49,10 @@ const CONTINENT_COLORS = [SKY, EMERALD, AMBER, VIOLET, ROSE, INDIGO, SLATE];
 interface StatsPageProps {
   identity: Identity | null;
   onNavigateHome: () => void;
+  onOpenGuestInvites?: () => void;
 }
 
-export function StatsPage({ identity, onNavigateHome }: StatsPageProps) {
+export function StatsPage({ identity, onNavigateHome, onOpenGuestInvites }: StatsPageProps) {
   const [stats, setStats] = useState<CommunityStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -224,6 +225,16 @@ export function StatsPage({ identity, onNavigateHome }: StatsPageProps) {
                 <Download className="size-4" aria-hidden />
                 Reminder CSV
               </Button>
+              {onOpenGuestInvites ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 min-h-[44px] w-full"
+                  onClick={onOpenGuestInvites}
+                >
+                  Invite event guests
+                </Button>
+              ) : null}
             </Panel>
 
             <Panel>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { MapPin } from "lucide-react";
 import { getLastSignedInName } from "../../services/identity";
 import { setPostLoginReturnUrl } from "../../services/returnUrl";
@@ -6,14 +6,9 @@ import {
   getCheckInAuthCopy,
   checkInReturnPath,
 } from "../../utils/checkInAuth";
-import { CommunitySignupForm } from "./CommunitySignupForm";
 import { DirectoryLoginForm } from "./DirectoryLoginForm";
 import foresightIcon from "../../assets/Foresight_RGB_Icon_Black.png?url";
 import { FORESIGHT_ORG_URL } from "../../constants/foresight";
-import type { DirectoryAuthResult } from "../../services/memberAuth";
-
-type LoginStep = "choice" | "inner" | "community";
-
 interface AuthGateProps {
   /** Current path (e.g. `/checkin/berlin`) — used for QR check-in context. */
   route: string;
@@ -22,7 +17,6 @@ interface AuthGateProps {
     username: string,
     password: string,
   ) => Promise<{ ok: boolean; error?: string }>;
-  onCommunityCreated: (result: DirectoryAuthResult) => void;
 }
 
 /**
@@ -31,18 +25,13 @@ interface AuthGateProps {
  * Check-in keeps the fellow login. Everywhere else asks which atlas first,
  * then shows the matching form in the same card.
  */
-export function AuthGate({ route, onSignIn, onCommunityCreated }: AuthGateProps) {
+export function AuthGate({ route, onSignIn }: AuthGateProps) {
   const checkInCopy = useMemo(() => getCheckInAuthCopy(route), [route]);
-  const [loginStep, setLoginStep] = useState<LoginStep>(checkInCopy ? "inner" : "choice");
 
   useEffect(() => {
     const returnPath = checkInReturnPath(route);
     if (returnPath) setPostLoginReturnUrl(returnPath);
   }, [route]);
-
-  useEffect(() => {
-    setLoginStep(checkInCopy ? "inner" : "choice");
-  }, [checkInCopy]);
 
   return (
     <main
@@ -83,77 +72,23 @@ export function AuthGate({ route, onSignIn, onCommunityCreated }: AuthGateProps)
             )}
           </div>
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-gray-900">
-            {checkInCopy
-              ? checkInCopy.heroTitle
-              : loginStep === "community"
-                ? "Community account"
-                : loginStep === "inner"
-                  ? "Welcome back"
-                  : "Sign in"}
+            {checkInCopy ? checkInCopy.heroTitle : "Sign in"}
           </h1>
-          {!checkInCopy && loginStep === "choice" ? (
+          {!checkInCopy ? (
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Are you a Foresight fellow, grantee, prize winner, or nodee?
+              Community accounts arrive by invite after an event.
             </p>
           ) : null}
         </div>
 
         <div className="rounded-3xl border border-gray-200 bg-white/90 p-6 shadow-xl backdrop-blur-sm sm:p-7">
-          {loginStep === "choice" ? (
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setLoginStep("inner")}
-                className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-gray-900 px-4 text-sm font-semibold text-white transition hover:bg-gray-800"
-              >
-                Yes — fellow, grantee, or nodee
-              </button>
-              <button
-                type="button"
-                onClick={() => setLoginStep("community")}
-                className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
-              >
-                No — community account
-              </button>
-            </div>
-          ) : null}
-
-          {loginStep === "inner" ? (
-            <>
-              <DirectoryLoginForm
-                title={checkInCopy?.formTitle}
-                submitLabel={checkInCopy?.submitLabel}
-                initialName={getLastSignedInName()}
-                onSubmit={onSignIn}
-                showAccountRecovery
-              />
-              {!checkInCopy ? (
-                <button
-                  type="button"
-                  onClick={() => setLoginStep("choice")}
-                  className="mt-4 w-full text-center text-sm font-medium text-teal-800 underline-offset-2 hover:underline"
-                >
-                  Back
-                </button>
-              ) : null}
-            </>
-          ) : null}
-
-          {loginStep === "community" ? (
-            <>
-              <CommunitySignupForm
-                onCreated={onCommunityCreated}
-                onSignInInstead={() => setLoginStep("inner")}
-              />
-              <button
-                type="button"
-                onClick={() => setLoginStep("choice")}
-                className="mt-2 w-full text-center text-sm font-medium text-teal-800 underline-offset-2 hover:underline"
-              >
-                Back
-              </button>
-            </>
-          ) : null}
+          <DirectoryLoginForm
+            title={checkInCopy?.formTitle}
+            submitLabel={checkInCopy?.submitLabel}
+            initialName={getLastSignedInName()}
+            onSubmit={onSignIn}
+            showAccountRecovery
+          />
         </div>
       </div>
     </main>

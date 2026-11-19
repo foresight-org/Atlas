@@ -2,7 +2,7 @@
 
 > A private directory and programming calendar for the Foresight Institute. Agents may read only what the signed-in person can see. There is no public roster and no write API.
 
-Atlas is two layers. A community account sees community profiles, the team, events, and node pins that open programming. A fellow, grantee, prize winner, or nodee sees the inner atlas. Node memory stays internal. Installing a connector does not cross that line.
+Atlas is two layers. Community accounts are invite-only, sent after an event. A community account sees community profiles, the team, events, and node pins that open programming. A fellow, grantee, prize winner, or nodee sees the inner atlas. Node memory stays internal. Installing a connector does not cross that line.
 
 ## Agents
 
