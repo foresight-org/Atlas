@@ -36,7 +36,6 @@ import {
 import { MapProjectionToggle } from "./map/MapProjectionToggle";
 import { FlatNodeMarkers } from "./map/FlatNodeMarkers";
 import { AtlasSurfaceToggle, type AtlasSurface } from "./nodes/AtlasSurfaceToggle";
-import { NodeLegend } from "./nodes/NodeLegend";
 import { NodeMemoryPanel } from "./nodes/NodeMemoryPanel";
 import { MEMORY_PLACES, MEMORY_ARCS } from "../data/nodeMemoryPlaces";
 import {
@@ -1272,7 +1271,6 @@ export function MapView({
         )}
 
         {showNodes ? <AtlasSurfaceToggle surface={surface} onChange={chooseSurface} /> : null}
-        {showNodes && surface === "nodes" ? <NodeLegend /> : null}
         {showNodes && surface === "nodes" && isMobile && selectedPlace ? (
           <div className="atlas-node-sheet">
             <NodeMemoryPanel

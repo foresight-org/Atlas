@@ -1,9 +1,11 @@
 /**
  * People or Nodes, one action each way.
  *
- * Sits on the globe the way the projection switch does: a small white
- * control, not a second navigation. Nodes is a surface of this map.
+ * Must sit above Leaflet panes (markers ~600). Without an explicit stack
+ * value the flat map paints pins over this control.
  */
+
+import { Z_INDEX_MAP_CONTROLS } from "../../constants/zIndex";
 
 export type AtlasSurface = "people" | "nodes";
 
@@ -14,7 +16,12 @@ interface AtlasSurfaceToggleProps {
 
 export function AtlasSurfaceToggle({ surface, onChange }: AtlasSurfaceToggleProps) {
   return (
-    <div className="atlas-surface-toggle" role="radiogroup" aria-label="Atlas view">
+    <div
+      className="atlas-surface-toggle"
+      role="radiogroup"
+      aria-label="Atlas view"
+      style={{ zIndex: Z_INDEX_MAP_CONTROLS }}
+    >
       <button
         type="button"
         role="radio"

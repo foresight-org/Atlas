@@ -3098,7 +3098,8 @@ h4 {
   position: absolute;
   top: 10px;
   left: 50%;
-  z-index: 30;
+  /* Above Leaflet marker panes (~600); MapView also sets Z_INDEX_MAP_CONTROLS. */
+  z-index: 1200;
   display: flex;
   transform: translateX(-50%);
   overflow: hidden;
