@@ -25,15 +25,21 @@ interface MapRoleLegendProps {
    * `public` has no corner zoom — just safe-area inset.
    */
   surface?: "app" | "public";
+  /** Limit the key. The public community face only has the team on the map. */
+  roles?: RoleType[];
   className?: string;
 }
 
 export function MapRoleLegend({
   tone = "light",
   surface = "app",
+  roles,
   className,
 }: MapRoleLegendProps) {
   const dark = tone === "dark";
+  const shown = roles
+    ? LEGEND_ROLES.filter((item) => roles.includes(item.role))
+    : LEGEND_ROLES;
 
   return (
     <div
@@ -56,7 +62,7 @@ export function MapRoleLegend({
             : "bg-white/55 text-gray-800 ring-white/50",
         )}
       >
-        {LEGEND_ROLES.map(({ role, label }) => (
+        {shown.map(({ role, label }) => (
           <li key={role} className="flex items-center gap-1.5" role="listitem">
             <span
               className={cn(

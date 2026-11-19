@@ -22,8 +22,8 @@ interface AuthGateProps {
 /**
  * AuthGate — the front door when someone lands on a gated route unsigned-in.
  *
- * Check-in keeps the fellow login. Everywhere else asks which atlas first,
- * then shows the matching form in the same card.
+ * Check-in keeps its own line. Everywhere else is the same door:
+ * fellows, grantees, prize winners, nodees, and invited guests.
  */
 export function AuthGate({ route, onSignIn }: AuthGateProps) {
   const checkInCopy = useMemo(() => getCheckInAuthCopy(route), [route]);
@@ -76,7 +76,7 @@ export function AuthGate({ route, onSignIn }: AuthGateProps) {
           </h1>
           {!checkInCopy ? (
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Community accounts arrive by invite after an event.
+              Fellows, grantees, prize winners, nodees, and guests invited after an event.
             </p>
           ) : null}
         </div>

@@ -57,6 +57,18 @@ const ROLE_ORDER: RoleType[] = [
   "Foresight Team",
 ];
 
+/** The public globe has two faces. Programs is the selected network. Community is the room. */
+type PublicFace = "community" | "programs";
+
+function pinsForFace(pins: AtlasPreviewPin[], face: PublicFace): AtlasPreviewPin[] {
+  if (face === "programs") return pins;
+  return pins.flatMap((pin) => {
+    const team = Number(pin.byRole?.["Foresight Team"] || 0);
+    if (team <= 0) return [];
+    return [{ ...pin, total: team, alumni: 0, byRole: { "Foresight Team": team } }];
+  });
+}
+
 /** Expand aggregate counts into anonymous stand-ins for pin badges only. */
 function pinsToMarkers(pins: AtlasPreviewPin[]): PinLocation[] {
   return pins.map((pin, pinIndex) => {
@@ -139,6 +151,7 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
   const [loadError, setLoadError] = useState(false);
   const [globeFailed, setGlobeFailed] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [face, setFace] = useState<PublicFace>("programs");
 
   const openLogin = () => setShowLogin(true);
   const closeLogin = () => setShowLogin(false);
@@ -161,9 +174,14 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
     };
   }, []);
 
+  const visiblePins = useMemo(
+    () => (preview?.pins?.length ? pinsForFace(preview.pins, face) : []),
+    [preview, face],
+  );
+
   const markers = useMemo(
-    () => (preview?.pins?.length ? pinsToMarkers(preview.pins) : []),
-    [preview],
+    () => (visiblePins.length ? pinsToMarkers(visiblePins) : []),
+    [visiblePins],
   );
 
   return (
@@ -213,7 +231,11 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
       />
 
       {/* Logged-out only — legend stays off the signed-in map */}
-      <MapRoleLegend tone="dark" surface="public" />
+      <MapRoleLegend
+        tone="dark"
+        surface="public"
+        roles={face === "community" ? ["Foresight Team"] : undefined}
+      />
 
       {/*
         Three equal columns: product name · institute mark · Events.
@@ -261,9 +283,40 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
             </a>
           </div>
         </div>
+
+        <div className="mt-3 flex justify-center sm:mt-4">
+          <div
+            className="inline-flex rounded-full border border-white/20 bg-black/30 p-0.5 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+            role="group"
+            aria-label="Atlas"
+          >
+            {(
+              [
+                ["community", "Community"],
+                ["programs", "Programs"],
+              ] as const
+            ).map(([value, label]) => {
+              const selected = face === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setFace(value)}
+                  className={`min-h-9 rounded-full px-3.5 text-xs font-semibold tracking-tight transition sm:min-h-10 sm:px-4 sm:text-sm ${
+                    selected
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-white/80 hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </header>
 
-      {/* Thumb-zone CTA — one Sign in; the overlay asks which door */}
       <div className="pointer-events-none absolute inset-x-0 bottom-[max(4.75rem,12vh)] z-20 flex justify-center px-4 sm:bottom-[max(5.5rem,14vh)]">
         <button
           type="button"
@@ -303,7 +356,7 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
                 Sign in
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                Community accounts arrive by invite after an event. If you have one, sign in with your name.
+                Fellows, grantees, prize winners, nodees, and guests invited after an event. Sign in with the name on your account.
               </p>
             </div>
 
