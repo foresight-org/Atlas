@@ -13,6 +13,7 @@
 const { getFullDatabaseFromSheet, getMapDatabaseFromSheet } = require("./sheet-database");
 const { mergeSheetEventsWithLuma } = require("./luma-merge");
 const { enrichRsvpsForApi } = require("./rsvp-enrichment");
+const { layerMapFromRecords } = require("./directory-layer");
 
 /** @param {unknown} value */
 function atlasScope(value) {
@@ -29,6 +30,7 @@ async function readAtlasDatabase(scope) {
 
   const database = await getFullDatabaseFromSheet();
   const rosterRecords = database._rosterRecords;
+  database._layer = layerMapFromRecords(rosterRecords);
   delete database._rosterRecords;
   database.events = await mergeSheetEventsWithLuma(database.events || []);
   database.rsvps = await enrichRsvpsForApi(database.rsvps, {

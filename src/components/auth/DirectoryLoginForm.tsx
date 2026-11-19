@@ -9,6 +9,7 @@ import {
   PopoverTrigger,
 } from "../ui/popover";
 import { ATLAS_ACCESS_MAILTO, atlasPasswordResetMailto } from "../../utils/checkInAuth";
+import { buildFullPath } from "../../utils/router";
 
 interface DirectoryLoginFormProps {
   title?: string;
@@ -207,13 +208,21 @@ export function DirectoryLoginForm({
       */}
       <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-amber-50/40 via-gray-50/80 to-sky-50/40 px-4 py-3">
         <p className="text-sm text-gray-600">
-          Not on the directory yet?{" "}
+          Anyone can{" "}
+          <a
+            href={buildFullPath("/community")}
+            className="font-medium text-teal-700 transition-colors hover:text-teal-900"
+          >
+            create a Foresight community account
+          </a>
+          . Fellows and grantees still{" "}
           <a
             href={ATLAS_ACCESS_MAILTO}
             className="font-medium text-teal-700 transition-colors hover:text-teal-900"
           >
-            Email our team for access
-          </a>
+            email the team
+          </a>{" "}
+          for the inner atlas.
         </p>
       </div>
 

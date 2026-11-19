@@ -341,39 +341,14 @@ function personRecordToRow(record) {
 }
 
 async function getSheetsClient({ write = false } = {}) {
-  const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-
-  if (keyJson || keyPath) {
-    let key = null;
-    if (keyJson) {
-      try {
-        key = typeof keyJson === "object" ? keyJson : JSON.parse(keyJson);
-      } catch {
-        key = null;
-      }
-    } else if (keyPath) {
-      const fs = require("fs");
-      const path = require("path");
-      const resolved = path.resolve(keyPath);
-      if (fs.existsSync(resolved)) {
-        try {
-          key = JSON.parse(fs.readFileSync(resolved, "utf8"));
-        } catch {
-          key = null;
-        }
-      } else {
-        // File missing (e.g. local path on Vercel). Unset so google-auth-library doesn't try to load it (avoids ENOENT / lstat).
-        delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
-      }
-    }
-    if (key) {
-      const auth = new google.auth.GoogleAuth({
-        credentials: key,
-        scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-      });
-      return google.sheets({ version: "v4", auth });
-    }
+  const { loadServiceAccountCredentials } = require("./sheets-credentials");
+  const key = loadServiceAccountCredentials();
+  if (key) {
+    const auth = new google.auth.GoogleAuth({
+      credentials: key,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    return google.sheets({ version: "v4", auth });
   }
 
   if (write) return null;

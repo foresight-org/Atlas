@@ -675,12 +675,34 @@ async function changeLocalMemberPassword(session, currentPassword, newPassword) 
   };
 }
 
-async function createLocalProfile(personInput, password) {
+async function createLocalProfile(personInput, password, options = {}) {
   const validatedPassword = validateNewPasswordForRegister(password);
   const db = await getLocalDatabase();
   const auth = await getLocalAuth();
   let person = normalizePersonForCreate(personInput);
-  if (!INVITE_LOCKABLE_ROLES.has(person.roleType)) {
+  const community = options.community === true;
+  if (community) {
+    person.roleType = "Community";
+    person.roleTypes = ["Community"];
+    person.primaryNode = "Global";
+    person.fellowshipCohortYear = 0;
+    person.fellowshipEndYear = null;
+    person.isAlumni = false;
+    person.email = String(person.email || "").trim().toLowerCase();
+    if (!person.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(person.email)) {
+      const err = new Error("Enter the email address you want this account to use.");
+      err.statusCode = 400;
+      throw err;
+    }
+    const emailTaken = db.people.some(
+      (entry) => String(entry.email || "").trim().toLowerCase() === person.email,
+    );
+    if (emailTaken) {
+      const err = new Error("This email already has an account. Sign in instead.");
+      err.statusCode = 409;
+      throw err;
+    }
+  } else if (!INVITE_LOCKABLE_ROLES.has(person.roleType)) {
     const err = new Error("Pick Fellow, Grantee, Prize Winner, or Nodee.");
     err.statusCode = 400;
     throw err;
@@ -690,10 +712,12 @@ async function createLocalProfile(personInput, password) {
   );
   if (duplicate) {
     const err = new Error(
-      "A profile with this name already exists. Claim it instead — enter the email we have on file.",
+      community
+        ? "That name is already on the atlas. Sign in if it is yours, or use the name people know you by."
+        : "A profile with this name already exists. Claim it instead — enter the email we have on file.",
     );
     err.statusCode = 409;
-    err.code = "EXISTING_PROFILE";
+    err.code = community ? "NAME_TAKEN" : "EXISTING_PROFILE";
     throw err;
   }
   person = await enrichCoordinates(person);

@@ -34,24 +34,8 @@ async function getSheetsClientForRead() {
 }
 
 async function getSheetsClientForWrite() {
-  const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  let key = null;
-  if (keyJson) {
-    try { key = JSON.parse(keyJson); } catch { return null; }
-  } else if (keyPath) {
-    const resolved = path.resolve(keyPath);
-    if (fs.existsSync(resolved)) {
-      try {
-        key = JSON.parse(fs.readFileSync(resolved, "utf8"));
-      } catch (e) {
-        console.error("[sheets-ops] GOOGLE_APPLICATION_CREDENTIALS read failed:", e.message);
-        return null;
-      }
-    } else {
-      delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    }
-  }
+  const { loadServiceAccountCredentials } = require("../sheets-credentials");
+  const key = loadServiceAccountCredentials();
   if (!key) return null;
   const auth = new google.auth.GoogleAuth({
     credentials: key,

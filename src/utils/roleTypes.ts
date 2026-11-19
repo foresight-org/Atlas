@@ -7,18 +7,19 @@ const VALID_ROLE_TYPES: RoleType[] = [
   "Senior Fellow",
   "Nodee",
   "Foresight Team",
+  "Community",
 ];
 
 export const ROLE_TYPE_OPTIONS: RoleType[] = VALID_ROLE_TYPES;
 
 /** Self-service profile picker — Senior Fellow is staff-assigned only. */
 export const PROFILE_ROLE_TYPE_OPTIONS: RoleType[] = VALID_ROLE_TYPES.filter(
-  (r) => r !== "Senior Fellow",
+  (r) => r !== "Senior Fellow" && r !== "Community",
 );
 
 /** Roles a standing /join invite may create. Team / Senior Fellow stay staff-assigned. */
 export const JOIN_ROLE_TYPE_OPTIONS: RoleType[] = VALID_ROLE_TYPES.filter(
-  (r) => r !== "Senior Fellow" && r !== "Foresight Team",
+  (r) => r !== "Senior Fellow" && r !== "Foresight Team" && r !== "Community",
 );
 
 export function getPrimaryRoleType(

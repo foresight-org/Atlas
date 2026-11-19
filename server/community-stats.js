@@ -37,27 +37,8 @@ async function getSheetsClientForRead() {
     const auth = new google.auth.GoogleAuth({ apiKey });
     return google.sheets({ version: "v4", auth });
   }
-  const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  let key = null;
-  if (keyJson) {
-    try {
-      key = JSON.parse(keyJson);
-    } catch {
-      return null;
-    }
-  } else if (keyPath) {
-    const fs = require("fs");
-    const path = require("path");
-    const resolved = path.resolve(keyPath);
-    if (fs.existsSync(resolved)) {
-      try {
-        key = JSON.parse(fs.readFileSync(resolved, "utf8"));
-      } catch {
-        return null;
-      }
-    }
-  }
+  const { loadServiceAccountCredentials } = require("./sheets-credentials");
+  const key = loadServiceAccountCredentials();
   if (!key) return null;
   const auth = new google.auth.GoogleAuth({
     credentials: key,

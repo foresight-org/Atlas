@@ -636,6 +636,11 @@ h4 {
   color: #8d5228;
 }
 
+.role-pill-community {
+  background: linear-gradient(135deg, #d1fae5 0%, #a5f3fc 100%);
+  color: #115e59;
+}
+
 .role-pill-foresight-team {
   background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
   color: #1b4520;

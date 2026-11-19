@@ -387,16 +387,19 @@ async function getMapDatabaseFromSheet() {
       loadRealDataRecords({ sheets, write: false }),
       fetchSheetRange(sheets, SHEET_NAMES.TRAVEL_WINDOWS, "A:K"),
     ]);
+    const { layerMapFromRecords } = require("./directory-layer");
     return {
       people: publicPeopleFromRecords(loaded.records),
       travelWindows: rowsToObjects(travelRows, TRAVEL_WINDOWS_HEADERS, (row) =>
         rowToTravelWindow(row),
       ),
+      _layer: layerMapFromRecords(loaded.records),
     };
   });
   return {
     people: db.people,
     travelWindows: db.travelWindows,
+    _layer: db._layer,
   };
 }
 

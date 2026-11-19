@@ -40,17 +40,8 @@ async function getSheetsClient({ write = false } = {}) {
   const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
   if (keyJson || keyPath) {
-    let key = null;
-    if (keyJson) {
-      try {
-        key = typeof keyJson === "object" ? keyJson : JSON.parse(keyJson);
-      } catch {
-        key = null;
-      }
-    }
-    if (!key && keyPath) {
-      key = JSON.parse(fs.readFileSync(path.resolve(keyPath), "utf8"));
-    }
+    const { loadServiceAccountCredentials } = require("./sheets-credentials");
+    const key = loadServiceAccountCredentials();
     if (!key) throw new Error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY");
     const auth = new google.auth.GoogleAuth({
       credentials: key,

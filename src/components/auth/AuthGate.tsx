@@ -9,6 +9,7 @@ import {
 import { DirectoryLoginForm } from "./DirectoryLoginForm";
 import foresightIcon from "../../assets/Foresight_RGB_Icon_Black.png?url";
 import { FORESIGHT_ORG_URL } from "../../constants/foresight";
+import { buildFullPath } from "../../utils/router";
 
 interface AuthGateProps {
   /** Current path (e.g. `/checkin/berlin`) — used for QR check-in context. */
@@ -90,6 +91,11 @@ export function AuthGate({ route, onSignIn }: AuthGateProps) {
             showAccountRecovery
           />
         </div>
+        <p className="mt-5 text-center text-sm leading-relaxed text-gray-700">
+          <a href={buildFullPath("/community")} className="font-medium text-teal-800 underline-offset-2 hover:underline">
+            Create a Foresight community account
+          </a>
+        </p>
       </div>
     </main>
   );

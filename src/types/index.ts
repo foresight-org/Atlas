@@ -6,7 +6,8 @@ export type RoleType =
   | "Prize Winner"
   | "Senior Fellow"
   | "Nodee"
-  | "Foresight Team";
+  | "Foresight Team"
+  | "Community";
 export type PrimaryNode = "Global" | "Berlin Node" | "Bay Area Node" | "Alumni";
 export type TravelWindowType = "Residency" | "Conference" | "Workshop" | "Visit" | "Other";
 export type SuggestionStatus = "Pending" | "Accepted" | "Rejected";

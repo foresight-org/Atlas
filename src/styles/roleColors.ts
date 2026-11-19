@@ -50,6 +50,12 @@ export const ROLE_COLORS: Record<RoleType, RoleColorSpec> = {
     text: "#1b4520",
     solid: "#66bb6a",
   },
+  Community: {
+    start: "#d1fae5",
+    end: "#a5f3fc",
+    text: "#115e59",
+    solid: "#2dd4bf",
+  },
 };
 
 /**
@@ -73,6 +79,7 @@ export const getRolePillClass = (role: RoleType): string => {
     "Senior Fellow": "role-pill-senior-fellow",
     Nodee: "role-pill-nodee",
     "Foresight Team": "role-pill-foresight-team",
+    Community: "role-pill-community",
   };
   return map[role] ?? "role-pill-fellow";
 };

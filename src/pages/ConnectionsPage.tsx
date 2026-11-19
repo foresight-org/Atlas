@@ -43,6 +43,8 @@ export interface ConnectionsPageProps {
   onNavigateHome: () => void;
   onOpenProfile: () => void;
   onViewPerson: (personId: string) => void;
+  /** Node recommendations name people from node conversations. Hidden on the community atlas. */
+  showNodeTalks?: boolean;
 }
 
 export function ConnectionsPage({
@@ -52,6 +54,7 @@ export function ConnectionsPage({
   onNavigateHome,
   onOpenProfile,
   onViewPerson,
+  showNodeTalks = true,
 }: ConnectionsPageProps) {
   const [tick, setTick] = useState(0);
   const [tab, setTab] = useState<ConnectionsTab>(initialConnectionsTab);
@@ -171,7 +174,7 @@ export function ConnectionsPage({
       </div>
 
       <main className="flex-1 overflow-auto px-4 py-6 pb-8 md:px-8 md:py-8">
-        <div className="mx-auto mb-6 flex max-w-2xl gap-1 rounded-full bg-white/80 p-1 shadow-sm ring-1 ring-gray-200" role="tablist" aria-label="Connections">
+        {showNodeTalks ? <div className="mx-auto mb-6 flex max-w-2xl gap-1 rounded-full bg-white/80 p-1 shadow-sm ring-1 ring-gray-200" role="tablist" aria-label="Connections">
           <button
             type="button"
             role="tab"
@@ -198,8 +201,8 @@ export function ConnectionsPage({
           >
             From Nodes
           </button>
-        </div>
-        {tab === "nodes" ? (
+        </div> : null}
+        {showNodeTalks && tab === "nodes" ? (
           <FromNodesList people={people} viewerId={identity?.personId ?? ""} onViewPerson={onViewPerson} />
         ) : (
         <>

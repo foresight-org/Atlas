@@ -44,10 +44,31 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === "GET") {
+      let session;
       try {
-        memberSession(req);
+        session = memberSession(req);
       } catch {
         return res.status(401).json({ error: "Sign in to view a Node's memory." });
+      }
+      const { isCommunityPerson } = require("../server/role-types");
+      const { isLocalMockMode, getLocalDatabase } = require("../server/local-storage");
+      let viewer = null;
+      try {
+        if (isLocalMockMode()) {
+          const database = await getLocalDatabase();
+          viewer = (database.people || []).find((person) => person.id === session.personId) || null;
+        } else {
+          const { loadRealDataRecords } = require("../server/realdata-store");
+          const loaded = await loadRealDataRecords({ write: false });
+          viewer = (loaded.records || []).find((record) => record.person?.id === session.personId)?.person || null;
+        }
+      } catch {
+        return res.status(503).json({ error: "The directory is unavailable." });
+      }
+      if (!viewer || isCommunityPerson(viewer)) {
+        return res.status(403).json({
+          error: "Node memory belongs to the fellow and grantee network.",
+        });
       }
       const place = String(req.query?.place || "").trim().toLowerCase();
       if (!place) return res.status(400).json({ error: "Pass ?place=." });

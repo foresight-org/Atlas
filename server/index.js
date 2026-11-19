@@ -14,7 +14,10 @@ const fs = require("fs").promises;
 const cors = require("cors");
 const { saveProfile, createProfile } = require("./profile-store");
 const { assertLoginAllowed, recordLoginFailure } = require("./login-guard");
-const { atlasScope, readAtlasDatabase } = require("./atlas-read");
+const { atlasScope } = require("./atlas-read");
+const { layeredDirectory, requestedDirectoryLayer } = require("./directory-layer");
+const { sendCachedDirectory } = require("./atlas-response-cache");
+const { mountAssistant } = require("./assistant");
 const {
   authenticateDirectoryLogin,
   changeDirectoryPassword,
@@ -72,14 +75,22 @@ app.use(express.json());
 app.get("/api/database", async (req, res) => {
   // Internal tool: a valid member session is required to read the directory.
   res.setHeader("Cache-Control", "private, no-store");
+  let session;
   try {
-    verifyDirectorySessionToken(readDirectoryTokenFromRequest(req));
+    session = verifyDirectorySessionToken(readDirectoryTokenFromRequest(req));
   } catch {
     return res.status(401).json({ error: "Sign in to view the directory." });
   }
   try {
-    const database = await readAtlasDatabase(atlasScope(req.query?.scope));
-    return res.json(database);
+    const scope = atlasScope(req.query?.scope);
+    await sendCachedDirectory(
+      res,
+      scope,
+      () => layeredDirectory(scope),
+      session.personId,
+      requestedDirectoryLayer(req.query),
+    );
+    return;
   } catch (error) {
     console.error("Error reading database from sheet:", error);
     const msg = error?.message || "Failed to read database from sheet.";
@@ -239,6 +250,29 @@ app.post("/api/member-register", async (req, res) => {
 });
 
 /**
+ * POST /api/member-community
+ * Open signup for the outer atlas. The role is always Community.
+ */
+app.post("/api/member-community", async (req, res) => {
+  try {
+    const { registerCommunityAccount } = require("./community-signup");
+    const result = await registerCommunityAccount(req, createProfile);
+    return res.json(result);
+  } catch (error) {
+    const status =
+      error && typeof error === "object" && typeof error.statusCode === "number"
+        ? error.statusCode
+        : 400;
+    if (status === 429 && error.retryAfterSec) {
+      res.setHeader("Retry-After", String(error.retryAfterSec));
+    }
+    res.status(status).json({
+      error: error instanceof Error ? error.message : "Could not create this account",
+    });
+  }
+});
+
+/**
  * POST /api/member-invite-claim
  * Standing join link: peek or claim an existing unclaimed roster row (email match).
  */
@@ -326,6 +360,8 @@ app.all("/api/memory", memoryHandler);
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+mountAssistant(app);
 
 // Explicit 404 for unmatched /api routes (return JSON so frontend can show a clear message)
 app.use("/api", (req, res) => {

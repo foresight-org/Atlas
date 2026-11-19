@@ -23,6 +23,10 @@ interface AppHeaderProps {
   onMobileMenuOpenChange: (open: boolean) => void;
   suggestFormUrl?: string;
   identity: Identity | null;
+  /** Outer atlas: no node programming, and the subtitle names the community layer. */
+  communityLayer?: boolean;
+  /** Foresight Team only. Switches the atlas they are looking at, not their account. */
+  onSwitchLayer?: (choice: "inner" | "community") => void;
   onOpenProfile: () => void;
   onSignIn: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   onSignOut: () => void;
@@ -36,6 +40,8 @@ export function AppHeader({
   onMobileMenuOpenChange,
   suggestFormUrl,
   identity,
+  communityLayer = false,
+  onSwitchLayer,
   onOpenProfile,
   onSignIn,
   onSignOut,
@@ -55,8 +61,9 @@ export function AppHeader({
    * dialog surfaces it instead. The route itself is still live and reachable
    * from the profile menu; it just doesn't need a nav pill of its own.
    */
-  const subtext =
-    "Internal tool — Connecting Grantees, Fellows, Nodees, Alumni, and our programming";
+  const subtext = communityLayer
+    ? "The wider Foresight community — connect with people outside the fellow and grantee network"
+    : "Internal tool — Connecting Grantees, Fellows, Nodees, Alumni, and our programming";
 
   const betaPill = (
     <span
@@ -166,6 +173,30 @@ export function AppHeader({
 
           {/* Desktop nav — original pill-style Map + Programming */}
           <div className="header-desktop-nav flex-shrink-0 items-center gap-1 sm:gap-2">
+            {onSwitchLayer ? (
+              <div className="mr-1 flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="Which atlas">
+                <button
+                  type="button"
+                  aria-pressed={!communityLayer}
+                  onClick={() => onSwitchLayer("inner")}
+                  className={`min-h-9 rounded-full px-3 text-xs font-semibold sm:text-sm ${
+                    communityLayer ? "text-gray-500" : "bg-white text-gray-900 shadow-sm"
+                  }`}
+                >
+                  Internal
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={communityLayer}
+                  onClick={() => onSwitchLayer("community")}
+                  className={`min-h-9 rounded-full px-3 text-xs font-semibold sm:text-sm ${
+                    communityLayer ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+                  }`}
+                >
+                  Community
+                </button>
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={goHome}
@@ -178,7 +209,7 @@ export function AppHeader({
               Map
             </button>
 
-            <div className="relative" ref={menuRef}>
+            {communityLayer ? null : <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setNodeMenuOpen(!nodeMenuOpen)}
                 className={`px-4 py-2 rounded-lg transition-all text-sm sm:text-base border inline-flex items-center gap-1.5 ${
@@ -232,7 +263,7 @@ export function AppHeader({
                   </button>
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* Connections intentionally omitted from the header — surfaced in the profile dialog instead. */}
 
@@ -536,6 +567,36 @@ export function AppHeader({
             </div>
             <nav className="flex-1 overflow-auto py-4 px-3" aria-label="Main navigation">
               <ul className="space-y-1.5">
+                {onSwitchLayer ? (
+                  <li className="mb-2 flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="Which atlas">
+                    <button
+                      type="button"
+                      aria-pressed={!communityLayer}
+                      onClick={() => {
+                        onSwitchLayer("inner");
+                        closeMobileMenu();
+                      }}
+                      className={`min-h-11 flex-1 rounded-full text-sm font-semibold ${
+                        communityLayer ? "text-gray-500" : "bg-white text-gray-900 shadow-sm"
+                      }`}
+                    >
+                      Internal
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={communityLayer}
+                      onClick={() => {
+                        onSwitchLayer("community");
+                        closeMobileMenu();
+                      }}
+                      className={`min-h-11 flex-1 rounded-full text-sm font-semibold ${
+                        communityLayer ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+                      }`}
+                    >
+                      Community
+                    </button>
+                  </li>
+                ) : null}
                 <li>
                   <button
                     onClick={() => {
@@ -551,7 +612,7 @@ export function AppHeader({
                     Map
                   </button>
                 </li>
-                <li>
+                {communityLayer ? null : <><li>
                   <button
                     onClick={() => {
                       navigate("/berlin");
@@ -595,7 +656,7 @@ export function AppHeader({
                   >
                     Global programming
                   </button>
-                </li>
+                </li></>}
                 {suggestFormUrl && (
                   <li className="pt-2 mt-2 border-t border-gray-100">
                     <a

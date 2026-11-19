@@ -7,6 +7,7 @@ const VALID_ROLE_TYPES = new Set([
   "Senior Fellow",
   "Nodee",
   "Foresight Team",
+  "Community",
 ]);
 
 /** Parse the RealData roleType cell — plain string, JSON array, or comma-separated. */
@@ -92,6 +93,16 @@ function personHasStaffRole(person) {
   return personRoleList(person).some((role) => STAFF_ROLES.has(role));
 }
 
+/** The outer atlas. These accounts never receive the fellow, grantee, or node roster. */
+function isCommunityPerson(person) {
+  return personRoleList(person).includes("Community");
+}
+
+/** Staff who may look at either atlas. The sheet assigns this role. */
+function isForesightTeamPerson(person) {
+  return personRoleList(person).includes("Foresight Team");
+}
+
 /** True when public API / UI must omit contact and booking links. */
 function isContactSuppressed(person) {
   return personRoleList(person).some((role) => CONTACT_SUPPRESSED_ROLES.has(role));
@@ -139,7 +150,10 @@ module.exports = {
   INVITE_LOCKABLE_ROLES,
   STAFF_ROLES,
   CONTACT_SUPPRESSED_ROLES,
+  personRoleList,
   personHasStaffRole,
+  isCommunityPerson,
+  isForesightTeamPerson,
   isContactSuppressed,
   isForesightPeopleProfileUrl,
   redactPublicContactFields,

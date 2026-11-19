@@ -10,6 +10,7 @@ import type { RSVPRecord } from "../types/events";
 import type { NodeEvent } from "../types/events";
 
 import { getApiBase } from "./api-base";
+import { getTeamLayerChoice, type AtlasLayerChoice } from "./atlasLayer";
 import { publishDataChanged } from "./sync";
 import { getIdentity } from "./identity";
 import { getPersonRoleTypes, primaryRoleType } from "../utils/roleTypes";
@@ -42,16 +43,25 @@ interface CachedDatabase {
 
 let cachedDatabase: CachedDatabase | null = null;
 let cachedAt = 0;
+let cachedRequest: AtlasLayerChoice = "inner";
 
 type DatabaseScope = "full" | "map" | "programming";
 
 /** Separate from the full payload so a map read never looks like "no events". */
 let mapCache: CachedDatabase | null = null;
 let mapCachedAt = 0;
+let mapRequest: AtlasLayerChoice = "inner";
 let mapFlight: Promise<CachedDatabase> | null = null;
 
 let programmingCache: CachedDatabase | null = null;
 let programmingCachedAt = 0;
+let programmingRequest: AtlasLayerChoice = "inner";
+let lastServedLayer: AtlasLayerChoice = "inner";
+
+/** The layer the server actually returned. A fellow asking for community still gets inner. */
+export function getLastServedLayer(): AtlasLayerChoice {
+  return lastServedLayer;
+}
 let programmingFlight: Promise<CachedDatabase> | null = null;
 
 /**
@@ -119,8 +129,11 @@ async function fetchWithTimeout(url: string): Promise<Response> {
 
 async function fetchScoped(scope: DatabaseScope): Promise<CachedDatabase> {
   const apiBase = getApiBase();
-  const apiUrl = `${apiBase}/database?scope=${scope}`.replace(/([^:]\/)\/+/g, "$1");
+  const requested = getTeamLayerChoice();
+  const layerQuery = requested === "community" ? "&layer=community" : "";
+  const apiUrl = `${apiBase}/database?scope=${scope}${layerQuery}`.replace(/([^:]\/)\/+/g, "$1");
   const response = await fetchWithTimeout(apiUrl);
+  lastServedLayer = response.headers.get("X-Atlas-Layer") === "community" ? "community" : "inner";
   if (response.status === 401) {
     throw new UnauthorizedError();
   }
@@ -147,7 +160,7 @@ async function fetchScoped(scope: DatabaseScope): Promise<CachedDatabase> {
  * is off, so the old single request is one flip away.
  */
 async function fetchDatabase(): Promise<CachedDatabase> {
-  if (cachedDatabase && Date.now() - cachedAt < DATABASE_MAX_AGE_MS) {
+  if (cachedDatabase && cachedRequest === getTeamLayerChoice() && Date.now() - cachedAt < DATABASE_MAX_AGE_MS) {
     return cachedDatabase;
   }
   if (inFlightFetch) return inFlightFetch;
@@ -161,6 +174,7 @@ async function fetchDatabase(): Promise<CachedDatabase> {
       raw.people = dedupePeople(raw.people as unknown[]);
       cachedDatabase = raw;
       cachedAt = Date.now();
+      cachedRequest = getTeamLayerChoice();
       return cachedDatabase;
     } finally {
       inFlightFetch = null;
@@ -172,7 +186,7 @@ async function fetchDatabase(): Promise<CachedDatabase> {
 
 /** Live people + travel. Does not wait on Luma. */
 async function fetchMapDatabase(): Promise<CachedDatabase> {
-  if (mapCache && Date.now() - mapCachedAt < DATABASE_MAX_AGE_MS) {
+  if (mapCache && mapRequest === getTeamLayerChoice() && Date.now() - mapCachedAt < DATABASE_MAX_AGE_MS) {
     return mapCache;
   }
   if (mapFlight) return mapFlight;
@@ -187,6 +201,7 @@ async function fetchMapDatabase(): Promise<CachedDatabase> {
       raw.travelWindows = Array.isArray(raw.travelWindows) ? raw.travelWindows : [];
       mapCache = raw;
       mapCachedAt = Date.now();
+      mapRequest = getTeamLayerChoice();
       return mapCache;
     } finally {
       mapFlight = null;
@@ -201,7 +216,7 @@ async function fetchMapDatabase(): Promise<CachedDatabase> {
  * the programming page so two screens do not start two Luma merges.
  */
 export async function fetchProgrammingDatabase(): Promise<CachedDatabase> {
-  if (programmingCache && Date.now() - programmingCachedAt < DATABASE_MAX_AGE_MS) {
+  if (programmingCache && programmingRequest === getTeamLayerChoice() && Date.now() - programmingCachedAt < DATABASE_MAX_AGE_MS) {
     return programmingCache;
   }
   if (programmingFlight) return programmingFlight;
@@ -213,6 +228,7 @@ export async function fetchProgrammingDatabase(): Promise<CachedDatabase> {
       raw.rsvps = Array.isArray(raw.rsvps) ? raw.rsvps : [];
       programmingCache = raw;
       programmingCachedAt = Date.now();
+      programmingRequest = getTeamLayerChoice();
       return programmingCache;
     } finally {
       programmingFlight = null;

@@ -8,34 +8,15 @@ const path = require("path");
 const { google } = require("googleapis");
 const { getSpreadsheetId } = require("../scripts/sheet-schema.js");
 const { assertPublicWriteSecret } = require("../server/public-write-secret.js");
+const { invalidateSheetReadCache } = require("../server/sheet-read-cache");
 
 const SPREADSHEET_ID = getSpreadsheetId();
 const SHEET_SUGGESTIONS = "Suggestions";
 const SUGGESTION_HEADERS = ["id", "personName", "personEmailOrHandle", "requestedChangeType", "requestedPayload", "createdAt", "status"];
 
 async function getSheetsClient() {
-  const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  let key = null;
-  if (keyJson) {
-    try {
-      key = JSON.parse(keyJson);
-    } catch {
-      return null;
-    }
-  } else if (keyPath) {
-    const resolved = path.resolve(keyPath);
-    if (fs.existsSync(resolved)) {
-      try {
-        key = JSON.parse(fs.readFileSync(resolved, "utf8"));
-      } catch (e) {
-        console.error("GOOGLE_APPLICATION_CREDENTIALS read failed:", e.message);
-        return null;
-      }
-    } else {
-      delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    }
-  }
+  const { loadServiceAccountCredentials } = require("../server/sheets-credentials");
+  const key = loadServiceAccountCredentials();
   if (!key) return null;
   const auth = new google.auth.GoogleAuth({
     credentials: key,
@@ -89,6 +70,7 @@ module.exports = async function handler(req, res) {
       insertDataOption: "INSERT_ROWS",
       requestBody: { values: [row] },
     });
+    invalidateSheetReadCache();
     return res.status(201).json({ id, status: "Pending", message: "Suggestion submitted; a node manager will review it." });
   } catch (e) {
     console.error("POST /api/suggestions", e.message);

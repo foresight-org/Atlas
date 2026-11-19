@@ -14,9 +14,11 @@ import {
   getAllPeople,
   getAllTravelWindows,
   getRsvps,
+  getLastServedLayer,
   invalidateDatabaseCache,
   UnauthorizedError,
 } from "./services/database";
+import { getTeamLayerChoice, setTeamLayerChoice, type AtlasLayerChoice } from "./services/atlasLayer";
 import { DEFER_PROGRAMMING_LOAD } from "./constants/loadStrategy";
 import { setAPIRsvpsFromBuild } from "./services/rsvp";
 import { AuthGate } from "./components/auth/AuthGate";
@@ -75,6 +77,9 @@ import {
 import { fetchConnectionsFromAPI } from "./services/connections";
 import { consumePostLoginReturnUrl } from "./services/returnUrl";
 import { WelcomeLetter } from "./components/welcome/WelcomeLetter";
+import { CommunityWelcome } from "./components/welcome/CommunityWelcome";
+import { CommunityAccountPage } from "./pages/CommunityAccountPage";
+import { AssistantConnectPage } from "./pages/AssistantConnectPage";
 import {
   armWelcomeLetter,
   dismissWelcomeLetter,
@@ -125,6 +130,9 @@ export default function App() {
    * intentionally absent from the public /api/database list.
    */
   const [selfPerson, setSelfPerson] = useState<Person | null>(null);
+  /** Team-only request. The server confirms it in the response before the view sticks. */
+  const [layerChoice, setLayerChoice] = useState<AtlasLayerChoice>(() => getTeamLayerChoice());
+  const [servedLayer, setServedLayer] = useState<AtlasLayerChoice>("inner");
   /** Bumps when bookmarks sync or toggle so ConnectionsPage re-reads. */
   const [connectionsVersion, setConnectionsVersion] = useState(0);
   /** Shared with MapView so the mobile list sheet can open the same nav menu as the header hamburger. */
@@ -244,7 +252,7 @@ export default function App() {
   // Keep SPA routing in sync with browser history
   useEffect(() => {
     const handlePop = () => setRoute(getRoutePath());
-    const knownRoutes = ["/", "/berlin", "/sf", "/global", "/profile", "/connections", "/calendar", "/open-to-meet", "/stats", "/claim", "/join", "/access", "/privacy", "/polls"];
+    const knownRoutes = ["/", "/berlin", "/sf", "/global", "/profile", "/connections", "/calendar", "/open-to-meet", "/stats", "/claim", "/join", "/access", "/privacy", "/polls", "/community", "/assistant"];
     const current = getRoutePath();
     // Check-in routes are dynamic (/checkin/berlin, /checkin/sf, /checkin/global)
     // so we match them with a prefix rather than an exact list entry. Bare
@@ -356,12 +364,13 @@ export default function App() {
           getAllTravelWindows(),
           loadEvents(),
         ]);
-        setPeople(peopleData);
-        setTravelWindows(travelWindowsData);
-        setEvents(eventsData);
-        if (silent) setError(null);
-        return;
-      }
+      setPeople(peopleData);
+      setTravelWindows(travelWindowsData);
+      setEvents(eventsData);
+      setServedLayer(getLastServedLayer());
+      if (silent) setError(null);
+      return;
+    }
 
       // Pins first. Luma and RSVPs are still live; they just don't hold the mark.
       const [peopleData, travelWindowsData] = await Promise.all([
@@ -370,6 +379,7 @@ export default function App() {
       ]);
       setPeople(peopleData);
       setTravelWindows(travelWindowsData);
+      setServedLayer(getLastServedLayer());
       if (silent) setError(null);
       void loadEvents()
         .then((eventsData) => {
@@ -680,10 +690,12 @@ export default function App() {
   const isAccessRoute = route === "/access";
   /** Privacy notice — public, no sign-in required. */
   const isPrivacyRoute = route === "/privacy";
+  const isCommunityRoute = route === "/community";
+  const isAssistantRoute = route === "/assistant";
   const isMapRoute = route === "/" || route === "";
   /** Magic-link onboarding + privacy — no chrome; the form needs the full viewport. */
   const isTokenOnboardingRoute =
-    !identity && (isClaimRoute || isJoinRoute || isAccessRoute || isPrivacyRoute);
+    !identity && (isClaimRoute || isJoinRoute || isAccessRoute || isPrivacyRoute || isCommunityRoute || isAssistantRoute);
   const isPollsPublicExperience = isPollsPublicRoute(route);
   /*
    * Resolve the signed-in member's record. Prefer the public directory copy
@@ -695,6 +707,18 @@ export default function App() {
     ? people.find((person) => person.id === identity.personId) ??
       (selfPerson && selfPerson.id === identity.personId ? selfPerson : null)
     : null;
+  const signedInRole = getPrimaryRoleType(signedInPerson);
+  const communityAccount = signedInRole === "Community";
+  const teamViewer = signedInRole === "Foresight Team";
+  // Nodes, programming, and the inner roster stay off the community view,
+  // including when team is only looking.
+  const communityLayer =
+    communityAccount || (teamViewer && (layerChoice === "community" || servedLayer === "community"));
+
+  useEffect(() => {
+    if (!communityLayer) return;
+    if (route === "/berlin" || route === "/sf" || route === "/global") navigate("/");
+  }, [communityLayer, route, navigate]);
 
   useEffect(() => {
     setMapLocationNudgeHidden(false);
@@ -708,6 +732,10 @@ export default function App() {
     import.meta.env.DEV &&
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("welcomePreview");
+  const communityWelcomePreview =
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("communityWelcome");
 
   const showWelcomeLetter = Boolean(
     welcomePreview ||
@@ -730,6 +758,7 @@ export default function App() {
       identity={identity}
       people={people}
       connectionsVersion={connectionsVersion}
+      showNodeTalks={!communityLayer}
       onNavigateHome={() => navigate("/")}
       onOpenProfile={() => navigate("/profile")}
       onViewPerson={(id) => {
@@ -842,6 +871,25 @@ export default function App() {
     <AccessPage onNavigateHome={() => navigate("/")} />
   ) : isPrivacyRoute ? (
     <PrivacyPage onNavigateHome={() => navigate("/")} />
+  ) : isCommunityRoute ? (
+    <CommunityAccountPage
+      onCreated={(result) => {
+        persistIdentity({
+          personId: result.person.id,
+          fullName: result.person.fullName,
+          token: result.auth.token,
+          expiresAt: result.auth.expiresAt,
+          mustChangePassword: result.auth.mustChangePassword,
+        });
+        setIdentityState(getIdentity());
+        setSelfPerson(result.person);
+        armWelcomeLetter(result.person.id);
+        navigate("/");
+      }}
+      onSignInInstead={() => navigate("/")}
+    />
+  ) : isAssistantRoute ? (
+    <AssistantConnectPage identity={identity} onSignIn={handleDirectorySignIn} />
   ) : (
     <>
       {showMapLocationNudge && signedInPerson ? (
@@ -890,6 +938,7 @@ export default function App() {
           defaultYear={today.getFullYear()}
           mobileMenuOpen={mobileMenuOpen}
           onMobileMenuToggle={() => setMobileMenuOpen((o) => !o)}
+          showNodes={!communityLayer}
         />
       </div>
     </>
@@ -907,8 +956,11 @@ export default function App() {
     !isJoinRoute &&
     !isAccessRoute &&
     !isPrivacyRoute &&
+    !isCommunityRoute &&
+    !isAssistantRoute &&
     !isPollsPublicExperience &&
-    !welcomePreview
+    !welcomePreview &&
+    !communityWelcomePreview
   ) {
     const isPublicHome = route === "/" || route === "";
     return (
@@ -921,6 +973,24 @@ export default function App() {
         ) : (
           <AuthGate route={route} onSignIn={handleDirectorySignIn} />
         )}
+        <Toaster />
+      </>
+    );
+  }
+
+  if (communityWelcomePreview) {
+    return (
+      <>
+        <div className="min-h-dvh bg-[#e8eef2]" aria-hidden />
+        <CommunityWelcome
+          fullName="Alex"
+          onDismiss={() => {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("communityWelcome");
+            window.history.replaceState({}, "", url.pathname + url.search);
+            setWelcomeEpoch((n) => n + 1);
+          }}
+        />
         <Toaster />
       </>
     );
@@ -982,6 +1052,17 @@ export default function App() {
         <AppHeader
           route={route}
           navigate={navigate}
+          communityLayer={communityLayer}
+          onSwitchLayer={
+            teamViewer
+              ? (choice) => {
+                  setTeamLayerChoice(choice);
+                  setLayerChoice(choice);
+                  invalidateDatabaseCache("all");
+                  void loadData();
+                }
+              : undefined
+          }
           identity={identity}
           onOpenProfile={() => navigate("/profile")}
           onSignIn={handleDirectorySignIn}
@@ -1075,18 +1156,28 @@ export default function App() {
       )}
 
       {showWelcomeLetter && (identity || welcomePreview) ? (
-        <WelcomeLetter
-          fullName={identity?.fullName ?? "Alex"}
-          onDismiss={() => {
-            if (identity) dismissWelcomeLetter(identity.personId);
-            if (welcomePreview) {
-              const url = new URL(window.location.href);
-              url.searchParams.delete("welcomePreview");
-              window.history.replaceState({}, "", url.pathname + url.search);
-            }
-            setWelcomeEpoch((n) => n + 1);
-          }}
-        />
+        communityAccount ? (
+          <CommunityWelcome
+            fullName={identity?.fullName ?? ""}
+            onDismiss={() => {
+              if (identity) dismissWelcomeLetter(identity.personId);
+              setWelcomeEpoch((n) => n + 1);
+            }}
+          />
+        ) : (
+          <WelcomeLetter
+            fullName={identity?.fullName ?? "Alex"}
+            onDismiss={() => {
+              if (identity) dismissWelcomeLetter(identity.personId);
+              if (welcomePreview) {
+                const url = new URL(window.location.href);
+                url.searchParams.delete("welcomePreview");
+                window.history.replaceState({}, "", url.pathname + url.search);
+              }
+              setWelcomeEpoch((n) => n + 1);
+            }}
+          />
+        )
       ) : null}
 
       <Toaster />

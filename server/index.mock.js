@@ -120,33 +120,41 @@ app.get("/api/directory-names", async (_req, res) => {
 
 app.get("/api/database", async (req, res) => {
   res.setHeader("Cache-Control", "private, no-store");
+  let session;
   try {
-    verifyDirectorySessionToken(readDirectoryTokenFromRequest(req));
+    session = verifyDirectorySessionToken(readDirectoryTokenFromRequest(req));
   } catch {
     return res.status(401).json({ error: "Sign in to view the directory." });
   }
   try {
     const database = await getLocalDatabase();
-    // Mirror production: hide private profiles; redact contact for senior roles.
     const { redactPublicContactFields } = require("./role-types");
+    const { layerMapFromRecords, splitDirectory, directoryViewFor, requestedDirectoryLayer } = require("./directory-layer");
+    const layer = layerMapFromRecords((database.people || []).map((person) => ({ person })));
     database.people = (database.people || [])
       .filter((p) => p && p.isPrivate !== true)
       .map((p) => redactPublicContactFields(p));
     database.events = applyBerlinSecureWorkshopSheetOverrides(database.events || []);
     database.rsvps = normalizeBerlinSecureWorkshopRsvps(database.rsvps || []);
     const scope = atlasScope(req.query?.scope);
-    if (scope === "map") {
-      return res.json({
-        people: database.people,
-        travelWindows: database.travelWindows || [],
-      });
+    if (scope !== "map") {
+      database.events = await mergeSheetEventsWithLuma(database.events || []);
+      database.rsvps = await enrichRsvpsForApi(database.rsvps || []);
     }
-    database.events = await mergeSheetEventsWithLuma(database.events || []);
-    database.rsvps = await enrichRsvpsForApi(database.rsvps || []);
-    if (scope === "programming") {
-      return res.json({ events: database.events, rsvps: database.rsvps });
+    const payload =
+      scope === "map"
+        ? { people: database.people, travelWindows: database.travelWindows || [], _layer: layer }
+        : scope === "programming"
+          ? { events: database.events, rsvps: database.rsvps, _layer: layer }
+          : { ...database, _layer: layer };
+    const views = splitDirectory(payload);
+    const view = directoryViewFor(layer, session.personId, requestedDirectoryLayer(req.query));
+    if (!view) {
+      return res.status(401).json({ error: "Sign in to view the directory." });
     }
-    return res.json(database);
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("X-Atlas-Layer", view);
+    return res.status(200).end(view === "community" ? views.community : views.inner);
   } catch (error) {
     console.error("Error reading local mock database:", error);
     return res.status(500).json({
@@ -259,6 +267,25 @@ app.post("/api/member-register", async (req, res) => {
     res.status(status).json({
       error: message,
       ...(error && typeof error === "object" && error.code ? { code: error.code } : {}),
+    });
+  }
+});
+
+app.post("/api/member-community", async (req, res) => {
+  try {
+    const { registerCommunityAccount } = require("./community-signup");
+    const result = await registerCommunityAccount(req, createLocalProfile);
+    return res.json(result);
+  } catch (error) {
+    const status =
+      error && typeof error === "object" && typeof error.statusCode === "number"
+        ? error.statusCode
+        : 400;
+    if (status === 429 && error.retryAfterSec) {
+      res.setHeader("Retry-After", String(error.retryAfterSec));
+    }
+    return res.status(status).json({
+      error: error instanceof Error ? error.message : "Could not create this account",
     });
   }
 });
@@ -431,6 +458,8 @@ app.all("/api/connections", connectionsHandler);
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+require("./assistant").mountAssistant(app);
 
 app.use("/api", (req, res) => {
   res.status(404).json({

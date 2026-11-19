@@ -912,7 +912,7 @@ export function GlobeMap({
 
         const coords = feature.geometry.coordinates as [number, number];
         const signature = clustered
-          ? `c:${properties.personCount}:${properties.alumniCount}:${properties.fellow}:${properties.seniorFellow}:${properties.grantee}:${properties.prizeWinner}:${properties.nodee}:${properties.foresightTeam}`
+          ? `c:${properties.personCount}:${properties.alumniCount}:${properties.fellow}:${properties.seniorFellow}:${properties.grantee}:${properties.prizeWinner}:${properties.nodee}:${properties.foresightTeam}:${properties.communityMember}`
           : `p:${properties.markerIndex}:${properties.personCount}:${properties.alumniCount}`;
 
         const existing = pins.get(id);
@@ -1035,6 +1035,7 @@ export function GlobeMap({
             prizeWinner: ["max", ["get", "prizeWinner"]],
             nodee: ["max", ["get", "nodee"]],
             foresightTeam: ["max", ["get", "foresightTeam"]],
+            communityMember: ["max", ["get", "communityMember"]],
           },
         });
         /*

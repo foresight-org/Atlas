@@ -14,6 +14,7 @@ import { MapRoleLegend } from "../components/map/MapRoleLegend";
 import { useIsMobile } from "../components/ui/use-mobile";
 import type { PinLocation } from "../components/map/pinAppearance";
 import { APP_NAME, FORESIGHT_LUMA_URL, FORESIGHT_ORG_URL } from "../constants/foresight";
+import { buildFullPath } from "../utils/router";
 import { Z_INDEX_MODAL_BACKDROP, Z_INDEX_MODAL_CONTENT } from "../constants/zIndex";
 import { getLastSignedInName } from "../services/identity";
 import type { RoleType } from "../types";
@@ -270,6 +271,14 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
           <LogIn className="size-4 shrink-0 opacity-90" aria-hidden />
           Sign in
         </button>
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.5rem,4vh)] z-20 flex justify-center px-4">
+        <a
+          href={buildFullPath("/community")}
+          className="pointer-events-auto text-sm font-medium text-white/90 underline decoration-white/40 underline-offset-4 hover:text-white"
+        >
+          Create a Foresight community account
+        </a>
       </div>
 
       {showLogin ? (

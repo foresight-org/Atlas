@@ -13,6 +13,12 @@
     { "source": "/api/member-invite-claim", "destination": "/api/member?route=invite-claim" },
     { "source": "/api/directory-names", "destination": "/api/member?route=directory-names" },
     { "source": "/api/member-access-request", "destination": "/api/member?route=access-request" },
+    { "source": "/api/member-community", "destination": "/api/member?route=community" },
+    { "source": "/api/assistant/:route", "destination": "/api/assistant?route=:route" },
+    { "source": "/.well-known/oauth-protected-resource", "destination": "/api/assistant?route=protected-resource" },
+    { "source": "/.well-known/oauth-protected-resource/:path*", "destination": "/api/assistant?route=protected-resource" },
+    { "source": "/.well-known/oauth-authorization-server", "destination": "/api/assistant?route=authorization-server" },
+    { "source": "/.well-known/oauth-authorization-server/:path*", "destination": "/api/assistant?route=authorization-server" },
     { "source": "/checkin/:slug*", "destination": "/index.html" },
     { "source": "/berlin", "destination": "/index.html" },
     { "source": "/sf", "destination": "/index.html" },
@@ -25,6 +31,8 @@
     { "source": "/polls/:path*", "destination": "/index.html" },
     { "source": "/claim", "destination": "/index.html" },
     { "source": "/join", "destination": "/index.html" },
-    { "source": "/access", "destination": "/index.html" }
+    { "source": "/access", "destination": "/index.html" },
+    { "source": "/community", "destination": "/index.html" },
+    { "source": "/assistant", "destination": "/index.html" }
   ]
 }

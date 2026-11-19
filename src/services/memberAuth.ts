@@ -146,3 +146,16 @@ export async function claimProfileWithInvite(
     password,
   });
 }
+
+/**
+ * Open account for the outer atlas. The server forces the Community role.
+ */
+export async function createCommunityAccount(input: {
+  fullName: string;
+  email: string;
+  password: string;
+  currentCity?: string;
+  consent: true;
+}): Promise<DirectoryAuthResult> {
+  return postJson<DirectoryAuthResult>(`${getApiBase()}/member-community`, input);
+}

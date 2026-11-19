@@ -76,6 +76,8 @@ interface MapViewProps {
   /** Same mobile nav menu as App header — list sheet toggles it from the top bar */
   mobileMenuOpen?: boolean;
   onMobileMenuToggle?: () => void;
+  /** Community accounts stay on the people map. Node memory is the inner atlas. */
+  showNodes?: boolean;
 }
 
 /**
@@ -658,6 +660,7 @@ export function MapView({
   defaultYear,
   mobileMenuOpen = false,
   onMobileMenuToggle,
+  showNodes = true,
 }: MapViewProps) {
   const [globeAvailable] = useState(() => GLOBE_MAP_ENABLED && supportsWebGL());
   const [projection, setProjection] = useState<MapProjection>(() =>
@@ -675,6 +678,9 @@ export function MapView({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   /** People is the directory. Nodes is the same globe, with memory instead of pins. */
   const [surface, setSurface] = useState<AtlasSurface>("people");
+  useEffect(() => {
+    if (!showNodes) setSurface("people");
+  }, [showNodes]);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   /** Filter section expanded state; collapse when user selects a map node so the person list is visible. */
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -1254,9 +1260,9 @@ export function MapView({
           <MapProjectionToggle mode={showGlobe ? "globe" : "flat"} onChange={chooseProjection} />
         )}
 
-        <AtlasSurfaceToggle surface={surface} onChange={chooseSurface} />
-        {surface === "nodes" ? <NodeLegend /> : null}
-        {surface === "nodes" && !showGlobe ? (
+        {showNodes ? <AtlasSurfaceToggle surface={surface} onChange={chooseSurface} /> : null}
+        {showNodes && surface === "nodes" ? <NodeLegend /> : null}
+        {showNodes && surface === "nodes" && !showGlobe ? (
           <div className="atlas-node-fallback">
             <p>The node view is drawn on the globe. This browser couldn’t start it.</p>
             <ul>
@@ -1270,7 +1276,7 @@ export function MapView({
             </ul>
           </div>
         ) : null}
-        {surface === "nodes" && isMobile && selectedPlace ? (
+        {showNodes && surface === "nodes" && isMobile && selectedPlace ? (
           <div className="atlas-node-sheet">
             <NodeMemoryPanel
               place={selectedPlace}
@@ -1448,7 +1454,7 @@ export function MapView({
       )}
 
       {/* Mobile: full-screen fellows sheet — above header/hamburger so list is on top */}
-      {!isMobile && surface === "nodes" && selectedPlace ? (
+      {showNodes && !isMobile && surface === "nodes" && selectedPlace ? (
         <div className="atlas-node-column">
           <NodeMemoryPanel
             place={selectedPlace}

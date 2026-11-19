@@ -280,6 +280,13 @@ async function syncPersonToSheets(person, authContext) {
 
   const now = new Date().toISOString();
   const enrichedPerson = await enrichLocation(person);
+  const { isCommunityPerson } = require("./role-types");
+  if (isCommunityPerson(match.person)) {
+    enrichedPerson.roleType = "Community";
+    enrichedPerson.roleTypes = ["Community"];
+  } else if (isCommunityPerson(enrichedPerson)) {
+    throw new Error("This profile stays on the fellow and grantee atlas.");
+  }
   const updated = cloneRecord(match);
   updated.person = enrichedPerson;
   // Email is stripped from the client payload, so it never round-trips through
@@ -339,25 +346,60 @@ function validateNewPasswordForRegister(password) {
  * RealData sheet, syncs to local database, and returns a session so the user
  * is signed in immediately.
  */
-async function createProfile(personInput, password) {
+function normalizeAccountEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function assertAccountEmail(value) {
+  const email = normalizeAccountEmail(value);
+  if (!email || email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const err = new Error("Enter the email address you want this account to use.");
+    err.statusCode = 400;
+    throw err;
+  }
+  return email;
+}
+
+async function createProfile(personInput, password, options = {}) {
   const validatedPassword = validateNewPasswordForRegister(password);
   const person = normalizePersonForCreate(personInput);
-  if (!INVITE_LOCKABLE_ROLES.has(person.roleType)) {
+  const community = options.community === true;
+  if (community) {
+    person.roleType = "Community";
+    person.roleTypes = ["Community"];
+    person.primaryNode = "Global";
+    person.fellowshipCohortYear = 0;
+    person.fellowshipEndYear = null;
+    person.isAlumni = false;
+    person.email = assertAccountEmail(person.email);
+  } else if (!INVITE_LOCKABLE_ROLES.has(person.roleType)) {
     const err = new Error("Pick Fellow, Grantee, Prize Winner, or Nodee.");
     err.statusCode = 400;
     throw err;
   }
 
   const loaded = await loadRealDataRecords({ write: true });
+  if (community) {
+    const taken = loaded.records.some(
+      (record) => normalizeAccountEmail(record.person?.email) === person.email,
+    );
+    if (taken) {
+      const err = new Error("This email already has an account. Sign in instead.");
+      err.statusCode = 409;
+      throw err;
+    }
+  }
   const existing = chooseCanonicalRecord(
     findRecordsByNormalizedName(loaded.records, person.fullName),
   );
   if (existing) {
     const err = new Error(
-      "A profile with this name already exists. Claim it instead — enter the email we have on file.",
+      community
+        ? "That name is already on the atlas. Sign in if it is yours, or use the name people know you by."
+        : "A profile with this name already exists. Claim it instead — enter the email we have on file.",
     );
     err.statusCode = 409;
-    err.code = "EXISTING_PROFILE";
+    err.code = community ? "NAME_TAKEN" : "EXISTING_PROFILE";
     throw err;
   }
 

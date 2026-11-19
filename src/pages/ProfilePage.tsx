@@ -10,6 +10,8 @@ import { PRESET_FOCUS_AREAS, CUSTOM_FOCUS_AREAS_ENABLED, getPresetFocusTags, get
 import { FocusTagsDisplay } from "../components/FocusTagsDisplay";
 import { CustomFocusInput } from "../components/CustomFocusInput";
 import { PersonContactLinks } from "../components/PersonContactLinks";
+import { AssistantConnectCard } from "../components/assistant/AssistantConnectCard";
+import { AgentHandoffCard } from "../components/community/AgentHandoffCard";
 import { getPersonRSVPs } from "../services/rsvp";
 import { fetchRSVPsFromAPI } from "../services/rsvp";
 import { subscribeToDataChanges } from "../services/sync";
@@ -868,11 +870,19 @@ export function ProfilePage({
                 </div>
               </div>
               {/* Nanowheel hero — your running count of node check-ins + RSVPs. */}
-              <NanowheelHero personId={draft.id} refreshTick={nanoTick} />
+              {draft.roleType === "Community" ? null : (
+                <NanowheelHero personId={draft.id} refreshTick={nanoTick} />
+              )}
+              {draft.roleType === "Community" ? null : <AssistantConnectCard />}
             </div>
 
             <OpenToMeetProfileStatus person={draft} />
           </div>
+          {draft.roleType === "Community" ? (
+            <div className="px-4 py-6 sm:px-8 lg:px-10">
+              <AgentHandoffCard />
+            </div>
+          ) : null}
 
           <div className="grid min-w-0 gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.85fr)] lg:px-10 lg:py-10 lg:gap-12">
             <section className="min-w-0 space-y-8">
@@ -893,6 +903,8 @@ export function ProfilePage({
                     <RoleTypeSelect
                       value={draft.roleType}
                       onChange={(role) => updateDraft("roleType", role)}
+                      locked={draft.roleType === "Community"}
+                      options={draft.roleType === "Community" ? ["Community"] : undefined}
                     />
                   </Field>
 

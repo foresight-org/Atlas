@@ -24,6 +24,7 @@ const ROLE_ORDER: RoleType[] = [
   "Prize Winner",
   "Nodee",
   "Foresight Team",
+  "Community",
 ];
 
 /**
@@ -37,6 +38,7 @@ export const ROLE_CLUSTER_KEYS: Array<{ key: string; role: RoleType }> = [
   { key: "prizeWinner", role: "Prize Winner" },
   { key: "nodee", role: "Nodee" },
   { key: "foresightTeam", role: "Foresight Team" },
+  { key: "communityMember", role: "Community" },
 ];
 
 export type CommunityStatus = "current" | "alumni" | "mixed";

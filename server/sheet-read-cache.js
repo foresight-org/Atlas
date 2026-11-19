@@ -8,7 +8,8 @@
  * concurrent tabs / serverless instances would blow past the limit.
  *
  * Writes should call {@link invalidateSheetReadCache} so the next read sees
- * fresh data; otherwise data can lag by up to TTL_MS.
+ * fresh data; otherwise data can lag by up to TTL_MS. That also drops the
+ * shared directory snapshot kept by atlas-response-cache.
  */
 
 const TTL_MS = 45 * 1000;
@@ -50,15 +51,27 @@ async function cachedSheetRead(key, loader) {
   return /** @type {Promise<T>} */ (promise);
 }
 
-/** Drop cached reads. Pass a prefix to clear a family (e.g. `"range:"`). */
+/**
+ * Drop cached reads. Pass a prefix to clear a family (e.g. `"range:"`).
+ * Assembled directory snapshots are always dropped, because they were
+ * built from these rows. A prefix-only clear used to leave `map-db` in
+ * place, and the shared response cache would then remember that stale copy.
+ */
 function invalidateSheetReadCache(prefix) {
   if (!prefix) {
     cache.clear();
-    return;
+  } else {
+    for (const key of cache.keys()) {
+      if (
+        key.startsWith(prefix) ||
+        key.startsWith("map-db:") ||
+        key.startsWith("full-db:")
+      ) {
+        cache.delete(key);
+      }
+    }
   }
-  for (const key of cache.keys()) {
-    if (key.startsWith(prefix)) cache.delete(key);
-  }
+  require("./atlas-response-cache").invalidateAtlasCache();
 }
 
 module.exports = {

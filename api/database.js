@@ -4,7 +4,7 @@
  * scope=map reads people and travel live from the sheet (no Luma).
  * scope=programming reads events, merges Luma live, and returns RSVPs.
  * No scope returns the full payload. Nothing is written to a JSON file.
- * In-memory cache (60s TTL) per instance reduces repeat sheet reads.
+ * The built JSON is shared across instances; see server/atlas-response-cache.js.
  *
  * Env: GOOGLE_SHEETS_API_KEY or GOOGLE_SERVICE_ACCOUNT_KEY, SPREADSHEET_ID; optional LUMA_API_KEY for events.
  */
@@ -18,15 +18,13 @@ if (credPath && !fs.existsSync(path.resolve(credPath))) {
   delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
 }
 
-const { atlasScope, readAtlasDatabase } = require("../server/atlas-read");
+const { atlasScope } = require("../server/atlas-read");
+const { layeredDirectory, requestedDirectoryLayer } = require("../server/directory-layer");
+const { sendCachedDirectory } = require("../server/atlas-response-cache");
 const {
   verifyDirectorySessionToken,
   readDirectoryTokenFromRequest,
 } = require("../server/directory-auth");
-
-const CACHE_TTL_MS = 60 * 1000; // 60s per instance (Vercel serverless may reuse the same instance)
-/** @type {Record<string, { at: number, value: unknown }>} */
-const cachedByScope = {};
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
@@ -39,22 +37,23 @@ module.exports = async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
   // The atlas is an internal tool: a valid member session is required.
+  let session;
   try {
-    verifyDirectorySessionToken(readDirectoryTokenFromRequest(req));
+    session = verifyDirectorySessionToken(readDirectoryTokenFromRequest(req));
   } catch {
     return res.status(401).json({ error: "Sign in to view the directory." });
   }
 
   try {
     const scope = atlasScope(req.query?.scope);
-    const now = Date.now();
-    const hit = cachedByScope[scope];
-    if (hit && now - hit.at < CACHE_TTL_MS) {
-      return res.status(200).json(hit.value);
-    }
-    const database = await readAtlasDatabase(scope);
-    cachedByScope[scope] = { at: now, value: database };
-    return res.status(200).json(database);
+    await sendCachedDirectory(
+      res,
+      scope,
+      () => layeredDirectory(scope),
+      session.personId,
+      requestedDirectoryLayer(req.query),
+    );
+    return;
   } catch (error) {
     console.error("GET /api/database", error?.message || error);
     const msg = error?.message || "Failed to read database from sheet";
