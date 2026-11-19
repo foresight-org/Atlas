@@ -73,6 +73,7 @@ import {
   refreshDirectorySession,
   claimProfile,
 } from "./services/memberAuth";
+import { redeemLoginLink } from "./services/loginLink";
 import { fetchConnectionsFromAPI } from "./services/connections";
 import { consumePostLoginReturnUrl } from "./services/returnUrl";
 import { WelcomeLetter } from "./components/welcome/WelcomeLetter";
@@ -562,6 +563,28 @@ export default function App() {
     [navigate],
   );
 
+  const handleMagicSignIn = useCallback(async (token: string) => {
+    try {
+      const result = await redeemLoginLink(token);
+      persistIdentity({
+        personId: result.person.id,
+        fullName: result.person.fullName,
+        token: result.auth.token,
+        expiresAt: result.auth.expiresAt,
+        mustChangePassword: false,
+      });
+      setIdentityState(getIdentity());
+      setSelfPerson(result.person);
+      armWelcomeLetter(result.person.id);
+      return { ok: true as const };
+    } catch (error) {
+      return {
+        ok: false as const,
+        error: error instanceof Error ? error.message : "This sign-in link could not be used.",
+      };
+    }
+  }, []);
+
   const handleClaimProfile = useCallback(
     async (token: string, newPassword: string, email?: string) => {
       try {
@@ -784,7 +807,6 @@ export default function App() {
       person={signedInPerson}
       createMode={false}
       onNavigateHome={() => navigate("/")}
-      onSignIn={handleDirectorySignIn}
       onSignOut={handleIdentityClear}
       onProfileSaved={handleProfileSaved}
       onExitCreateMode={() => navigate("/profile")}
@@ -857,6 +879,7 @@ export default function App() {
     <ClaimPage
       token={claimToken}
       onClaim={handleClaimProfile}
+      onMagicSignIn={handleMagicSignIn}
       onClaimed={() => navigate(profileLocationSetupPath())}
       onNavigateHome={() => navigate("/")}
     />
@@ -881,7 +904,7 @@ export default function App() {
       onSignInInstead={() => navigate("/")}
     />
   ) : isAssistantRoute ? (
-    <AssistantConnectPage identity={identity} onSignIn={handleDirectorySignIn} />
+    <AssistantConnectPage identity={identity} />
   ) : (
     <>
       {showMapLocationNudge && signedInPerson ? (
@@ -961,15 +984,9 @@ export default function App() {
     return (
       <>
         {isPublicHome ? (
-          <PublicAtlasPage
-            onSignIn={handleDirectorySignIn}
-            onOpenPrivacy={() => navigate("/privacy")}
-          />
+          <PublicAtlasPage onOpenPrivacy={() => navigate("/privacy")} />
         ) : (
-          <AuthGate
-            route={route}
-            onSignIn={handleDirectorySignIn}
-          />
+          <AuthGate route={route} />
         )}
         <Toaster />
       </>
@@ -1066,7 +1083,6 @@ export default function App() {
           }
           identity={identity}
           onOpenProfile={() => navigate("/profile")}
-          onSignIn={handleDirectorySignIn}
           onSignOut={handleIdentityClear}
           onNavigateHome={() => setMapFilterIds(null)}
           mobileMenuOpen={mobileMenuOpen}

@@ -22,6 +22,7 @@ const {
   readDirectoryTokenFromRequest,
 } = require("../server/directory-auth");
 const { requestAccessLink } = require("../server/access-request");
+const { requestLoginLink, redeemLoginLink } = require("../server/login-link");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -203,6 +204,45 @@ async function handleDirectoryNames(req, res) {
   });
 }
 
+async function handleLoginLink(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  try {
+    const result = await requestLoginLink(req, req.body || {});
+    return res.status(200).json(result);
+  } catch (error) {
+    const statusCode =
+      error && typeof error === "object" && typeof error.statusCode === "number"
+        ? error.statusCode
+        : 400;
+    if (statusCode === 429 && error.retryAfterSec) {
+      res.setHeader("Retry-After", String(error.retryAfterSec));
+    }
+    return res.status(statusCode).json({
+      error: error instanceof Error ? error.message : "Could not send a sign-in link",
+    });
+  }
+}
+
+async function handleLoginRedeem(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  try {
+    const result = await redeemLoginLink(req.body?.token);
+    return res.status(200).json(result);
+  } catch (error) {
+    const statusCode =
+      error && typeof error === "object" && typeof error.statusCode === "number"
+        ? error.statusCode
+        : 401;
+    return res.status(statusCode).json({
+      error: error instanceof Error ? error.message : "This sign-in link could not be used",
+    });
+  }
+}
+
 async function handleAccessRequest(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -243,6 +283,8 @@ const ROUTES = {
   community: handleCommunityRegister,
   "directory-names": handleDirectoryNames,
   "access-request": handleAccessRequest,
+  "login-link": handleLoginLink,
+  "login-redeem": handleLoginRedeem,
 };
 
 module.exports = async function handler(req, res) {

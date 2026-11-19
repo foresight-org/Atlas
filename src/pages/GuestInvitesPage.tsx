@@ -12,6 +12,7 @@ import {
   sendGuestInviteSlice,
   type GuestPreview,
   type GuestSendSlice,
+  type NameClashAction,
 } from "../services/guestInvites";
 import { Button } from "../components/ui/button";
 
@@ -26,7 +27,11 @@ const STATUS_LABEL: Record<string, string> = {
   invited: "Invite sent · reminder in 14 days",
   invited_reminder_failed: "Invite sent · reminder did not schedule",
   already_member: "Already on Atlas",
-  name_taken: "That name belongs to someone else",
+  name_taken: "Left as a separate name — nothing sent",
+  signin_sent: "Sign-in link sent to the email already on file",
+  connected: "New email connected · sign-in link sent",
+  email_taken: "That email is already on a different account",
+  no_email: "No email on the existing account",
   mail_failed: "Could not send",
   quota: "Resend daily limit reached",
   failed: "Could not add this person",
@@ -40,6 +45,7 @@ export function GuestInvitesPage({ identity, teamViewer, resolving, onNavigateHo
   const [progress, setProgress] = useState("");
   const [busy, setBusy] = useState<"preview" | "send" | null>(null);
   const [error, setError] = useState("");
+  const [clashes, setClashes] = useState<Record<string, NameClashAction>>({});
 
   async function onFile(file: File | undefined) {
     if (!file) return;
@@ -55,7 +61,13 @@ export function GuestInvitesPage({ identity, teamViewer, resolving, onNavigateHo
     setError("");
     setSent([]);
     try {
-      setPreview(await previewGuestInvites(csv, eventName));
+      const next = await previewGuestInvites(csv, eventName);
+      setPreview(next);
+      const choices: Record<string, NameClashAction> = {};
+      for (const row of next.preview) {
+        if (row.action === "name_taken") choices[row.email] = "link";
+      }
+      setClashes(choices);
     } catch (err) {
       setPreview(null);
       setError(err instanceof Error ? err.message : "Could not read this list.");
@@ -65,7 +77,9 @@ export function GuestInvitesPage({ identity, teamViewer, resolving, onNavigateHo
   }
 
   async function onSend() {
-    if (!preview || preview.counts.invite === 0) return;
+    if (!preview) return;
+    const clashWork = Object.values(clashes).filter((action) => action !== "skip").length;
+    if (preview.counts.invite === 0 && clashWork === 0) return;
     setBusy("send");
     setError("");
     const collected: GuestSendSlice["results"] = [];
@@ -73,7 +87,8 @@ export function GuestInvitesPage({ identity, teamViewer, resolving, onNavigateHo
       let offset = 0;
       let done = false;
       while (!done) {
-        const slice = await sendGuestInviteSlice(csv, eventName, offset);
+        const resolutions = Object.entries(clashes).map(([email, action]) => ({ email, action }));
+        const slice = await sendGuestInviteSlice(csv, eventName, offset, resolutions);
         collected.push(...slice.results);
         setSent([...collected]);
         setProgress(`${Math.min(slice.nextOffset, slice.total)} of ${slice.total}`);
@@ -133,8 +148,9 @@ export function GuestInvitesPage({ identity, teamViewer, resolving, onNavigateHo
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
                 Drop a CSV with first name, last name, and email. Each new guest gets a
-                community account and a claim link. People who already have a password
-                are skipped. A reminder goes out 14 days later.
+                community account and a sign-in link. If the name already has an account
+                under a different email, connect that address or mail the one on file.
+                A reminder goes out 14 days later.
               </p>
             </div>
           </div>
@@ -187,7 +203,13 @@ export function GuestInvitesPage({ identity, teamViewer, resolving, onNavigateHo
             <Button
               type="button"
               className="min-h-11"
-              disabled={busy !== null || !preview || preview.counts.invite === 0 || !preview.mailConfigured}
+              disabled={
+                busy !== null ||
+                !preview ||
+                !preview.mailConfigured ||
+                (preview.counts.invite === 0 &&
+                  !Object.values(clashes).some((action) => action !== "skip"))
+              }
               onClick={() => void onSend()}
             >
               {busy === "send" ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -221,13 +243,44 @@ export function GuestInvitesPage({ identity, teamViewer, resolving, onNavigateHo
             </h2>
             <ul className="mt-4 divide-y divide-gray-100">
               {preview.preview.map((row) => (
-                <li key={`${row.line}-${row.email}`} className="flex items-baseline justify-between gap-3 py-2.5 text-sm">
-                  <span className="min-w-0 truncate text-gray-900">
-                    {row.firstName} <span className="text-gray-500">{row.email}</span>
-                  </span>
-                  <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-gray-500">
-                    {row.action === "invite" ? "Invite" : row.action === "already_member" ? "Skip" : "Clash"}
-                  </span>
+                <li key={`${row.line}-${row.email}`} className="py-3 text-sm">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 truncate text-gray-900">
+                      {row.firstName} <span className="text-gray-500">{row.email}</span>
+                    </span>
+                    <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-gray-500">
+                      {row.action === "invite" ? "Invite" : row.action === "already_member" ? "Skip" : "Already here"}
+                    </span>
+                  </div>
+                  {row.action === "name_taken" ? (
+                    <div className="mt-2 rounded-2xl bg-gray-50 px-3 py-3">
+                      <p className="text-xs leading-relaxed text-gray-600">
+                        This name already has an account{row.maskedEmail ? ` (${row.maskedEmail})` : ""}. Connecting the new email keeps one person. Or send a sign-in link to the address already on file.
+                      </p>
+                      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                        {(
+                          [
+                            ["link", "Email the address on file"],
+                            ["connect", "Connect this email"],
+                            ["skip", "Skip"],
+                          ] as const
+                        ).map(([action, label]) => (
+                          <button
+                            key={action}
+                            type="button"
+                            onClick={() => setClashes((current) => ({ ...current, [row.email]: action }))}
+                            className={`min-h-10 rounded-full px-3 text-xs font-medium ${
+                              (clashes[row.email] || "link") === action
+                                ? "bg-gray-900 text-white"
+                                : "bg-white text-gray-700 ring-1 ring-gray-200"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>

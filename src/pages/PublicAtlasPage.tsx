@@ -13,7 +13,6 @@ import { DirectoryLoginForm } from "../components/auth/DirectoryLoginForm";
 import { MapRoleLegend } from "../components/map/MapRoleLegend";
 import { useIsMobile } from "../components/ui/use-mobile";
 import type { PinLocation } from "../components/map/pinAppearance";
-import { FOCUS_COLOR_ORDER, getFocusGradient } from "../styles/focusColors";
 import { APP_NAME, FORESIGHT_LUMA_URL, FORESIGHT_ORG_URL } from "../constants/foresight";
 import { Z_INDEX_MODAL_BACKDROP, Z_INDEX_MODAL_CONTENT } from "../constants/zIndex";
 import { getLastSignedInName } from "../services/identity";
@@ -55,10 +54,6 @@ interface AtlasPreviewFile {
 }
 
 interface PublicAtlasPageProps {
-  onSignIn: (
-    username: string,
-    password: string,
-  ) => Promise<{ ok: boolean; error?: string }>;
   /** Open the short privacy notice (SPA navigate from signed-out home). */
   onOpenPrivacy?: () => void;
 }
@@ -189,7 +184,7 @@ function pinsToMarkers(pins: AtlasPreviewPin[]): PinLocation[] {
   });
 }
 
-export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProps) {
+export function PublicAtlasPage({ onOpenPrivacy }: PublicAtlasPageProps) {
   const isMobile = useIsMobile();
   const [preview, setPreview] = useState<AtlasPreviewFile | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -272,20 +267,8 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
         className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/60 via-black/25 to-transparent"
       />
 
-      {/* Logged-out only — legend stays off the signed-in map */}
-      <MapRoleLegend
-        tone="dark"
-        surface="public"
-        swatches={
-          face === "community"
-            ? FOCUS_COLOR_ORDER.map((name) => ({
-                id: name,
-                label: name,
-                color: getFocusGradient(name),
-              }))
-            : undefined
-        }
-      />
+      {/* Programs keeps the short role legend. Community has too many focus areas for one. */}
+      {face === "programs" && <MapRoleLegend tone="dark" surface="public" />}
 
       {/*
         Three equal columns: product name · institute mark · Events.
@@ -406,15 +389,11 @@ export function PublicAtlasPage({ onSignIn, onOpenPrivacy }: PublicAtlasPageProp
                 Sign in
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                Fellows, grantees, prize winners, nodees, and guests invited after an event. Sign in with the name on your account.
+                Fellows, grantees, prize winners, nodees, and guests invited after an event. Use the email on your account.
               </p>
             </div>
 
-            <DirectoryLoginForm
-              initialName={getLastSignedInName()}
-              onSubmit={onSignIn}
-              showAccountRecovery
-            />
+            <DirectoryLoginForm initialName={getLastSignedInName()} />
 
             {onOpenPrivacy ? (
               <p className="mt-4 text-center text-[11px] leading-none text-gray-400">

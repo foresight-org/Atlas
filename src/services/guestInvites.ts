@@ -12,7 +12,11 @@ export interface GuestPreviewRow {
   email: string;
   action: "invite" | "already_member" | "name_taken";
   role: string;
+  /** Masked address already on the account, when the name matches someone else. */
+  maskedEmail?: string;
 }
+
+export type NameClashAction = "link" | "connect" | "skip";
 
 export interface GuestPreview {
   dryRun: true;
@@ -59,6 +63,13 @@ export function sendGuestInviteSlice(
   csv: string,
   eventName: string,
   offset: number,
+  resolutions: { email: string; action: NameClashAction }[] = [],
 ): Promise<GuestSendSlice> {
-  return postGuestInvites({ csv, eventName, dryRun: false, offset }) as Promise<GuestSendSlice>;
+  return postGuestInvites({
+    csv,
+    eventName,
+    dryRun: false,
+    offset,
+    resolutions,
+  }) as Promise<GuestSendSlice>;
 }

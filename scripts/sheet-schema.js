@@ -112,8 +112,17 @@ const PEOPLE_AUTH_HEADERS = [
  * - visibleToCommunity: stored on the row. The community atlas does not read it.
  *   That view is community accounts and non-private Foresight Team only.
  *   Do not delete or reorder this column.
+ * - otherEmails: extra sign-in addresses for the same person, comma-separated.
+ *   The canonical email stays in `email`. A second event address connects here
+ *   instead of opening a duplicate row. Server-only, same as email.
  */
-const PEOPLE_EXTENDED_HEADERS = ["isPrivate", "email", "currentlyLookingFor", "visibleToCommunity"];
+const PEOPLE_EXTENDED_HEADERS = [
+  "isPrivate",
+  "email",
+  "currentlyLookingFor",
+  "visibleToCommunity",
+  "otherEmails",
+];
 
 const PEOPLE_HEADERS = [
   ...PEOPLE_PUBLIC_HEADERS,

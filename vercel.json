@@ -13,6 +13,8 @@
     { "source": "/api/member-invite-claim", "destination": "/api/member?route=invite-claim" },
     { "source": "/api/directory-names", "destination": "/api/member?route=directory-names" },
     { "source": "/api/member-access-request", "destination": "/api/member?route=access-request" },
+    { "source": "/api/member-login-link", "destination": "/api/member?route=login-link" },
+    { "source": "/api/member-login-redeem", "destination": "/api/member?route=login-redeem" },
     { "source": "/api/member-community", "destination": "/api/member?route=community" },
     { "source": "/api/assistant/:route", "destination": "/api/assistant?route=:route" },
     { "source": "/.well-known/oauth-protected-resource", "destination": "/api/assistant?route=protected-resource" },

@@ -297,6 +297,7 @@ async function syncPersonToSheets(person, authContext) {
   // Email is stripped from the client payload, so it never round-trips through
   // the edit form. Preserve the roster email already on file.
   updated.person.email = match.person.email || "";
+  updated.person.otherEmails = match.person.otherEmails || "";
   updated.auth.lastProfileUpdatedAt = now;
 
   await upsertRealDataRecord(loaded.sheets, loaded.sheetName, updated);
@@ -461,6 +462,7 @@ async function createUnclaimedCommunityProfile(personInput, loaded) {
   person.isAlumni = false;
   person.visibleToCommunity = false;
   person.email = assertAccountEmail(person.email);
+  person.otherEmails = "";
   const digest = crypto.createHash("sha256").update(person.email).digest("hex").slice(0, 16);
   person.id = `realdata-community-${digest}`;
 

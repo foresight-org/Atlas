@@ -67,6 +67,7 @@ module.exports = async function handler(req, res) {
       eventName: req.body?.eventName,
       dryRun: req.body?.dryRun === true,
       offset: req.body?.offset,
+      resolutions: Array.isArray(req.body?.resolutions) ? req.body.resolutions.slice(0, 400) : [],
       origin: publicOrigin(req),
     });
     return res.status(200).json(result);

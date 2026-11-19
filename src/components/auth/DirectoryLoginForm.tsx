@@ -1,71 +1,50 @@
 import { useState } from "react";
-import { HelpCircle, Loader2, Lock, Mail, UserCircle2 } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../ui/popover";
-import { atlasPasswordResetMailto } from "../../utils/checkInAuth";
+import { requestLoginLink } from "../../services/loginLink";
 
 interface DirectoryLoginFormProps {
   title?: string;
   description?: string;
   submitLabel?: string;
-  onSubmit: (
-    username: string,
-    password: string,
-  ) => Promise<{ ok: boolean; error?: string }>;
   onCancel?: () => void;
-  /**
-   * Name this device last signed in with. Used only if they switch to the
-   * name field. The email box stays empty so a password manager can fill it.
-   */
+  /** Kept so a remembered name can hint the field, never to sign in by name. */
   initialName?: string | null;
-  /** Show a visible forgot-password line. */
-  showAccountRecovery?: boolean;
 }
 
+/**
+ * Sign-in is an email link. The address has to already be on an atlas account.
+ * The reply is the same either way, so the form cannot be used to look people up.
+ */
 export function DirectoryLoginForm({
   title,
   description,
-  submitLabel = "Enter",
-  onSubmit,
+  submitLabel = "Email me a sign-in link",
   onCancel,
   initialName,
-  showAccountRecovery = false,
 }: DirectoryLoginFormProps) {
-  const rememberedName = (initialName ?? "").trim();
-  const rememberedIsEmail = rememberedName.includes("@");
-  const [mode, setMode] = useState<"email" | "name">("email");
-  const [email, setEmail] = useState(rememberedIsEmail ? rememberedName : "");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
+  const remembered = (initialName ?? "").trim();
+  const [email, setEmail] = useState(remembered.includes("@") ? remembered : "");
   const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const identifier = (mode === "email" ? email : name).trim();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    if (!identifier || !password) {
-      setError(
-        mode === "email"
-          ? "Enter the email we have on file, and your password."
-          : "Enter your first and last name, and your password.",
-      );
-      setIsSubmitting(false);
+    const trimmed = email.trim();
+    if (!trimmed.includes("@")) {
+      setError("Enter the email on your atlas account.");
       return;
     }
     setIsSubmitting(true);
     try {
-      const result = await onSubmit(identifier, password);
-      if (!result.ok) {
-        setError(result.error ?? "Sign-in failed.");
-      }
+      const result = await requestLoginLink(trimmed);
+      setSent(result.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send a sign-in link.");
     } finally {
       setIsSubmitting(false);
     }
@@ -76,9 +55,7 @@ export function DirectoryLoginForm({
       {title || description ? (
         <div className="space-y-2">
           {title ? (
-            <h2 className="text-xl font-semibold tracking-tight text-gray-900">
-              {title}
-            </h2>
+            <h2 className="text-xl font-semibold tracking-tight text-gray-900">{title}</h2>
           ) : null}
           {description ? (
             <p className="text-sm leading-6 text-gray-600">{description}</p>
@@ -86,141 +63,54 @@ export function DirectoryLoginForm({
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          {mode === "email" ? (
-            <>
-              <Label htmlFor="directory-login-email">Email</Label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  id="directory-login-email"
-                  name="username"
-                  type="email"
-                  inputMode="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="Email on file"
-                  autoComplete="username"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  className="h-11 pl-10"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("name");
-                  setError(null);
-                  if (!name && rememberedName && !rememberedIsEmail) {
-                    setName(rememberedName);
-                  }
-                }}
-                className="text-sm font-medium text-teal-700 transition-colors hover:text-teal-900"
-              >
-                Use your first and last name instead
-              </button>
-            </>
-          ) : (
-            <>
-              <Label htmlFor="directory-login-name">First and last name</Label>
-              <div className="relative">
-                <UserCircle2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  id="directory-login-name"
-                  name="username"
-                  type="text"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="First and last name"
-                  autoComplete="username"
-                  autoCapitalize="words"
-                  spellCheck={false}
-                  className="h-11 pl-10"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("email");
-                  setError(null);
-                }}
-                className="text-sm font-medium text-teal-700 transition-colors hover:text-teal-900"
-              >
-                Use your email instead
-              </button>
-            </>
-          )}
+      {sent ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-6 text-emerald-950">
+          {sent}
         </div>
-
+      ) : (
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="directory-login-password">Password</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 rounded-full"
-                  aria-label="First-time login hint"
-                >
-                  <HelpCircle className="size-4" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side="top" align="start" className="max-w-[280px]">
-                First time here? Open the personal sign-in link you were sent.
-                After that, use that password here.
-              </PopoverContent>
-            </Popover>
-          </div>
+          <Label htmlFor="directory-login-email">Email</Label>
           <div className="relative">
-            <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+            <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
             <Input
-              id="directory-login-password"
-              name="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Password"
-              autoComplete="current-password"
+              id="directory-login-email"
+              name="email"
+              type="email"
+              inputMode="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email on your account"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className="h-11 pl-10"
             />
           </div>
-          {showAccountRecovery ? (
-            <p className="text-sm text-gray-600">
-              <a
-                href={atlasPasswordResetMailto(identifier)}
-                className="font-medium text-teal-700 transition-colors hover:text-teal-900"
-              >
-                Forgot your password?
-              </a>{" "}
-              Email our team and we'll send a new sign-in link.
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
+          <p className="text-sm leading-6 text-gray-600">
+            We email a link that signs you in. Accounts are by invite, so the address has to be the one we already have.
+          </p>
         </div>
       )}
 
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
+
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        {onCancel && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            className="min-h-[44px]"
-          >
+        {onCancel ? (
+          <Button type="button" variant="outline" onClick={onCancel} className="min-h-[44px]">
             Cancel
           </Button>
+        ) : null}
+        {sent ? null : (
+          <Button type="submit" disabled={isSubmitting} className="min-h-[44px] px-5">
+            {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+            {submitLabel}
+          </Button>
         )}
-        <Button type="submit" disabled={isSubmitting} className="min-h-[44px] px-5">
-          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
-          {submitLabel}
-        </Button>
       </div>
     </form>
   );

@@ -360,6 +360,9 @@ function issueClaimToken(personId) {
  */
 
 const RESET_TTL_MS = 1000 * 60 * 60 * 24; // 24 hours
+/** Self-serve sign-in links. Invite mail uses a longer window so the 14-day reminder still opens. */
+const SIGNIN_TTL_MS = 1000 * 60 * 60 * 24;
+const SIGNIN_INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
 /** Short, non-reversible fingerprint of a password hash ("password version"). */
 function passwordVersion(passwordHash) {
@@ -393,6 +396,19 @@ function issuePasswordResetToken(personId, currentPasswordHash, ttlMs = RESET_TT
  * Verify a claim OR reset token (they share the /claim page and endpoint).
  * Returns the payload; check `payload.purpose` to tell them apart.
  */
+function issueSignInToken(personId, ttlMs = SIGNIN_TTL_MS) {
+  const id = String(personId || "").trim();
+  if (!id) throw new Error("issueSignInToken requires a personId.");
+  const payload = {
+    personId: id,
+    purpose: "signin",
+    iat: Date.now(),
+    exp: new Date(Date.now() + ttlMs).toISOString(),
+  };
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  return `${encodedPayload}.${getSessionSignature(encodedPayload)}`;
+}
+
 function verifyClaimToken(token) {
   const unauthorized = (message) => {
     const err = new Error(message);
@@ -423,11 +439,16 @@ function verifyClaimToken(token) {
   }
   const isClaim = payload.purpose === "claim";
   const isReset = payload.purpose === "reset";
-  if ((!isClaim && !isReset) || !payload.personId) {
+  const isSignIn = payload.purpose === "signin";
+  if ((!isClaim && !isReset && !isSignIn) || !payload.personId) {
     throw unauthorized("This sign-in link is invalid.");
   }
-  if (isReset && (!payload.exp || new Date(payload.exp).getTime() <= Date.now())) {
-    throw unauthorized("This reset link has expired. Ask for a fresh one.");
+  if ((isReset || isSignIn) && (!payload.exp || new Date(payload.exp).getTime() <= Date.now())) {
+    throw unauthorized(
+      isSignIn
+        ? "This sign-in link has expired. Ask for a fresh one from the atlas."
+        : "This reset link has expired. Ask for a fresh one.",
+    );
   }
 
   return payload;
@@ -642,6 +663,13 @@ async function peekClaimToken(token) {
     err.statusCode = 404;
     throw err;
   }
+  if (payload.purpose === "signin") {
+    return {
+      person: { id: match.person.id, fullName: match.person.fullName },
+      alreadyClaimed: false,
+      mode: "signin",
+    };
+  }
   if (payload.purpose === "reset") {
     // A reset link only fits the password it was minted against.
     if (passwordVersion(match.auth.passwordHash) !== payload.pwv) {
@@ -744,6 +772,46 @@ async function claimDirectoryProfile(token, newPassword, options = {}) {
  * periodically while the tab stays open, so day-to-day check-ins at the node
  * never interrupt the person at the door with a re-login prompt.
  */
+/**
+ * A sign-in link opens a session. It does not set or clear a password.
+ * The first time someone uses one, we mark the row claimed.
+ */
+async function redeemSignInLink(token) {
+  const payload = verifyClaimToken(token);
+  if (payload.purpose !== "signin") {
+    const err = new Error("This sign-in link is invalid.");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const loaded = await loadRealDataRecords({ write: true });
+  const match = loaded.records.find((record) => record.person.id === payload.personId);
+  if (!match) {
+    const err = new Error("We could not find the profile for this link.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const updated = cloneRecord(match);
+  updated.auth.mustChangePassword = false;
+  if (!updated.auth.claimedAt) {
+    updated.auth.claimedAt = new Date().toISOString();
+    await upsertRealDataRecord(loaded.sheets, loaded.sheetName, updated);
+  }
+
+  const sessionRecord = cloneRecord(updated);
+  sessionRecord.auth.mustChangePassword = false;
+  queueLoginEvent({
+    personId: updated.person?.id,
+    fullName: updated.person?.fullName,
+    kind: "login",
+  });
+  return {
+    person: updated.person,
+    auth: issueDirectorySession(sessionRecord),
+  };
+}
+
 async function refreshDirectorySession(token) {
   const session = verifyDirectorySessionToken(token);
 
@@ -775,6 +843,9 @@ module.exports = {
   verifyPasswordHash,
   issueClaimToken,
   issuePasswordResetToken,
+  issueSignInToken,
+  SIGNIN_INVITE_TTL_MS,
+  redeemSignInLink,
   passwordVersion,
   verifyClaimToken,
   peekClaimToken,

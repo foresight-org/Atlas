@@ -177,6 +177,44 @@ function escapeAttr(value) {
  * @param {"claim" | "reset"} kind
  * @param {string} [fullName]
  */
+function renderSignInEmail(link, fullName) {
+  const name = String(fullName || "").trim() || "there";
+  return {
+    subject: "Sign in to Foresight Atlas",
+    text: [
+      `Hi ${name},`,
+      "",
+      "Use this link to sign in to Foresight Atlas. No password needed:",
+      link,
+      "",
+      "It expires in 24 hours. If you did not ask for it, you can ignore it.",
+      "",
+      "— Foresight Atlas",
+    ].join("\n"),
+    html: `<p>Hi ${escapeHtml(name)},</p>
+<p>Use this link to sign in to <strong>Foresight Atlas</strong>. No password needed:</p>
+<p><a href="${escapeAttr(link)}">Sign in</a></p>
+<p style="color:#666;font-size:14px">It expires in 24 hours. If you did not ask for it, you can ignore it.</p>`,
+  };
+}
+
+/**
+ * Sign-in mail. Never log the address or the link.
+ */
+async function sendSignInLink(email, link, fullName, idempotencyKey) {
+  if (!mailConfigured()) {
+    return { sent: false, reason: "no_smtp" };
+  }
+  const { subject, text, html } = renderSignInEmail(link, fullName);
+  return sendMail({
+    to: email,
+    subject,
+    text,
+    html,
+    idempotencyKey,
+  });
+}
+
 async function sendAccessMagicLink(email, link, kind, fullName) {
   if (!mailConfigured()) {
     console.info(`[auth] magic link (${kind}) for ${email}: ${link}`);
@@ -203,5 +241,6 @@ module.exports = {
   sendMail,
   fromAddress,
   sendAccessMagicLink,
+  sendSignInLink,
   renderAccessEmail,
 };

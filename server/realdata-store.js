@@ -286,6 +286,7 @@ function rowToPersonRecord(orderedRow, rowNumber) {
       .replace(/\s+/g, " ")
       .trim(),
     visibleToCommunity: normalizeBoolean(orderedRow[idx("visibleToCommunity")]),
+    otherEmails: normalizeString(orderedRow[idx("otherEmails")]),
   };
 
   if (!person.id && person.fullName) {
@@ -339,6 +340,7 @@ function personRecordToRow(record) {
     person.email ?? "",
     person.currentlyLookingFor ?? "",
     person.visibleToCommunity ? "TRUE" : "FALSE",
+    person.otherEmails ?? "",
   ];
 }
 

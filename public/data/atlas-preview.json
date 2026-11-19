@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-11-19T21:56:17.525Z",
-  "personCount": 196,
-  "pinCount": 109,
+  "generatedAt": "2026-11-19T22:12:16.207Z",
+  "personCount": 204,
+  "pinCount": 111,
   "pins": [
     {
       "city": "London",
@@ -20,12 +20,13 @@
       "country": "Germany",
       "lat": 52.52,
       "lng": 13.405,
-      "total": 12,
+      "total": 13,
       "alumni": 2,
       "byRole": {
         "Fellow": 2,
         "Grantee": 7,
-        "Nodee": 3
+        "Nodee": 3,
+        "Foresight Team": 1
       }
     },
     {
@@ -45,11 +46,24 @@
       "country": "US",
       "lat": 37.788,
       "lng": -122.408,
-      "total": 10,
+      "total": 11,
       "alumni": 9,
       "byRole": {
         "Fellow": 7,
-        "Grantee": 3
+        "Grantee": 3,
+        "Foresight Team": 1
+      }
+    },
+    {
+      "city": "San Francisco",
+      "country": "USA",
+      "lat": 37.775,
+      "lng": -122.419,
+      "total": 8,
+      "alumni": 3,
+      "byRole": {
+        "Fellow": 6,
+        "Foresight Team": 2
       }
     },
     {
@@ -62,17 +76,6 @@
       "byRole": {
         "Fellow": 5,
         "Grantee": 1
-      }
-    },
-    {
-      "city": "San Francisco",
-      "country": "USA",
-      "lat": 37.775,
-      "lng": -122.419,
-      "total": 6,
-      "alumni": 3,
-      "byRole": {
-        "Fellow": 6
       }
     },
     {
@@ -110,6 +113,19 @@
       }
     },
     {
+      "city": "New York",
+      "country": "USA",
+      "lat": 40.713,
+      "lng": -74.006,
+      "total": 4,
+      "alumni": 2,
+      "byRole": {
+        "Fellow": 2,
+        "Grantee": 1,
+        "Foresight Team": 1
+      }
+    },
+    {
       "city": "Zürich",
       "country": "Switzerland",
       "lat": 47.374,
@@ -118,18 +134,6 @@
       "alumni": 4,
       "byRole": {
         "Fellow": 3,
-        "Grantee": 1
-      }
-    },
-    {
-      "city": "New York",
-      "country": "USA",
-      "lat": 40.713,
-      "lng": -74.006,
-      "total": 3,
-      "alumni": 2,
-      "byRole": {
-        "Fellow": 2,
         "Grantee": 1
       }
     },
@@ -293,6 +297,18 @@
       }
     },
     {
+      "city": "Philadelphia",
+      "country": "United States",
+      "lat": 39.953,
+      "lng": -75.164,
+      "total": 2,
+      "alumni": 1,
+      "byRole": {
+        "Grantee": 1,
+        "Foresight Team": 1
+      }
+    },
+    {
       "city": "Santa Monica, CA",
       "country": "United States",
       "lat": 34.019,
@@ -367,6 +383,17 @@
       "alumni": 1,
       "byRole": {
         "Fellow": 1
+      }
+    },
+    {
+      "city": "Barcelona",
+      "country": "Spain",
+      "lat": 41.383,
+      "lng": 2.177,
+      "total": 1,
+      "alumni": 0,
+      "byRole": {
+        "Foresight Team": 1
       }
     },
     {
@@ -866,17 +893,6 @@
     },
     {
       "city": "Philadelphia",
-      "country": "United States",
-      "lat": 39.953,
-      "lng": -75.164,
-      "total": 1,
-      "alumni": 1,
-      "byRole": {
-        "Grantee": 1
-      }
-    },
-    {
-      "city": "Philadelphia",
       "country": "USA",
       "lat": 39.952,
       "lng": -75.193,
@@ -1063,6 +1079,17 @@
       }
     },
     {
+      "city": "Stockholm",
+      "country": "Sweden",
+      "lat": 59.325,
+      "lng": 18.071,
+      "total": 1,
+      "alumni": 0,
+      "byRole": {
+        "Foresight Team": 1
+      }
+    },
+    {
       "city": "Storrs",
       "country": "USA",
       "lat": 41.808,
@@ -1228,7 +1255,7 @@
         "lng": -122.419,
         "total": 2,
         "byFocus": {
-          "Not yet chosen": 2
+          "No focus area": 2
         }
       },
       {
@@ -1238,7 +1265,7 @@
         "lng": 2.177,
         "total": 1,
         "byFocus": {
-          "Not yet chosen": 1
+          "No focus area": 1
         }
       },
       {
@@ -1274,7 +1301,7 @@
         "lng": -75.164,
         "total": 1,
         "byFocus": {
-          "Not yet chosen": 1
+          "No focus area": 1
         }
       },
       {
@@ -1284,7 +1311,7 @@
         "lng": -122.408,
         "total": 1,
         "byFocus": {
-          "Not yet chosen": 1
+          "No focus area": 1
         }
       },
       {
@@ -1294,7 +1321,7 @@
         "lng": 18.071,
         "total": 1,
         "byFocus": {
-          "Not yet chosen": 1
+          "No focus area": 1
         }
       }
     ]

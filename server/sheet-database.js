@@ -365,7 +365,7 @@ function publicPeopleFromRecords(records) {
     .map((r) => r.person)
     .filter((p) => p && p.fullName)
     .filter((p) => p.isPrivate !== true)
-    .map(({ email, ...rest }) => redactPublicContactFields(rest));
+    .map(({ email, otherEmails, ...rest }) => redactPublicContactFields(rest));
 }
 
 /**

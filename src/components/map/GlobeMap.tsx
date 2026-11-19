@@ -229,6 +229,11 @@ export function GlobeMap({
   const introCompleteRef = useRef(prefersReducedMotion());
   /** Stops the idle rAF spin before any programmatic easeTo/flyTo (avoids MapLibre ease races). */
   const stopIdleSpinRef = useRef<() => void>(() => {});
+  /** Closes the place card. The map effect owns the popup; marker changes call in. */
+  const dismissPopupRef = useRef<() => void>(() => {});
+  /** True while a face/filter change is flying back out, so a hover cannot reopen the card mid-flight. */
+  const suppressPopupRef = useRef(false);
+  const popupReturnRef = useRef(0);
   const globeCameraRef = useRef<GlobeCamera>(IDLE_CAMERA);
   const onMemorySelectRef = useRef(onMemorySelect);
   const onMemoryClearRef = useRef(onMemoryClear);
@@ -771,7 +776,17 @@ export function GlobeMap({
       );
     };
 
+    dismissPopupRef.current = () => {
+      cancelClose();
+      popup.remove();
+    };
+
     const activate = async (element: HTMLElement, fromHover: boolean) => {
+      /* A Community/Programs switch is already flying home. Don't pin a new card to that flight. */
+      if (suppressPopupRef.current) {
+        if (!fromHover) endPinGesture();
+        return;
+      }
       const kind = element.dataset.kind;
       if (fromHover && (kind !== "point" || map.getZoom() < MIN_ZOOM_ON_PIN_CLICK)) return;
       cancelClose();
@@ -1117,6 +1132,8 @@ export function GlobeMap({
       introRunning = false;
       stopSpinLoop();
       stopIdleSpinRef.current = () => {};
+      dismissPopupRef.current = () => {};
+      suppressPopupRef.current = false;
       globeCameraRef.current = IDLE_CAMERA;
       if (frame) cancelAnimationFrame(frame);
       cancelClose();
@@ -1160,6 +1177,24 @@ export function GlobeMap({
     const shouldFit =
       isMobile && markers.length > 0 && markers.length <= MOBILE_FIT_MARKERS_THRESHOLD;
 
+    /*
+     * The place card is anchored to a pin. Switching Community/Programs
+     * (or a filter) replaces those pins and flies back out; leaving the
+     * card up strands it over the wide globe.
+     */
+    const releasePopupForReframe = (moving: boolean) => {
+      if (!moving) {
+        dismissPopupRef.current();
+        return;
+      }
+      const token = ++popupReturnRef.current;
+      suppressPopupRef.current = true;
+      dismissPopupRef.current();
+      map.once("moveend", () => {
+        if (popupReturnRef.current === token) suppressPopupRef.current = false;
+      });
+    };
+
     if (!shouldFit) {
       /*
        * While the opening zoom-out runs, leave framing alone. After that,
@@ -1167,7 +1202,11 @@ export function GlobeMap({
        * pin fly-to) — filter refreshes should not yank the idle spin.
        */
       if (!introCompleteRef.current) return;
-      if (map.getZoom() <= SPIN_MAX_ZOOM) return;
+      if (map.getZoom() <= SPIN_MAX_ZOOM) {
+        releasePopupForReframe(false);
+        return;
+      }
+      releasePopupForReframe(true);
       stopIdleSpinRef.current();
       const opening = map.getContainer().getBoundingClientRect();
       map.easeTo({
@@ -1177,6 +1216,9 @@ export function GlobeMap({
       });
       return;
     }
+
+    /* Instant reframes (mobile fit) have no flight for a card to ride. */
+    releasePopupForReframe(false);
 
     if (markers.length === 1) {
       const only = markers[0];

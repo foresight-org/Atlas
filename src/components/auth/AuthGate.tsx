@@ -12,11 +12,6 @@ import { FORESIGHT_ORG_URL } from "../../constants/foresight";
 interface AuthGateProps {
   /** Current path (e.g. `/checkin/berlin`) — used for QR check-in context. */
   route: string;
-  /** Authenticate a member; resolves with ok=false + message on failure. */
-  onSignIn: (
-    username: string,
-    password: string,
-  ) => Promise<{ ok: boolean; error?: string }>;
 }
 
 /**
@@ -25,7 +20,7 @@ interface AuthGateProps {
  * Check-in keeps its own line. Everywhere else is the same door:
  * fellows, grantees, prize winners, nodees, and invited guests.
  */
-export function AuthGate({ route, onSignIn }: AuthGateProps) {
+export function AuthGate({ route }: AuthGateProps) {
   const checkInCopy = useMemo(() => getCheckInAuthCopy(route), [route]);
 
   useEffect(() => {
@@ -86,8 +81,6 @@ export function AuthGate({ route, onSignIn }: AuthGateProps) {
             title={checkInCopy?.formTitle}
             submitLabel={checkInCopy?.submitLabel}
             initialName={getLastSignedInName()}
-            onSubmit={onSignIn}
-            showAccountRecovery
           />
         </div>
       </div>

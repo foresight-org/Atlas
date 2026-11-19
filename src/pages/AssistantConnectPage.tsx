@@ -20,10 +20,6 @@ import foresightIcon from "../assets/Foresight_RGB_Icon_Black.png?url";
 
 interface AssistantConnectPageProps {
   identity: Identity | null;
-  onSignIn: (
-    username: string,
-    password: string,
-  ) => Promise<{ ok: boolean; error?: string }>;
 }
 
 interface ConnectRequest {
@@ -84,7 +80,7 @@ function assistantHost(redirectUri: string): string {
   }
 }
 
-export function AssistantConnectPage({ identity, onSignIn }: AssistantConnectPageProps) {
+export function AssistantConnectPage({ identity }: AssistantConnectPageProps) {
   const request = useMemo(() => readRequest(), []);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<"allow" | "deny" | null>(null);
@@ -168,11 +164,9 @@ export function AssistantConnectPage({ identity, onSignIn }: AssistantConnectPag
         ) : !identity ? (
           <DirectoryLoginForm
             title="Sign in to connect"
-            description={`${assistantHost(request.redirectUri)} is asking to read the Atlas as you. Sign in with your Atlas account. The assistant can only see the layer that account already sees.`}
-            submitLabel="Sign in"
+            description={`${assistantHost(request.redirectUri)} is asking to read the Atlas as you. We'll email a sign-in link. The assistant can only see the layer that account already sees.`}
+            submitLabel="Email me a sign-in link"
             initialName={getLastSignedInName()}
-            showAccountRecovery
-            onSubmit={onSignIn}
           />
         ) : (
           <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">

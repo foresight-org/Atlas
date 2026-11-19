@@ -1169,6 +1169,44 @@ async function getMockCalendarEvents() {
   return Array.isArray(raw) ? raw : defaultMockGoogleCalendarEvents();
 }
 
+/**
+ * Mock twin of redeemSignInLink. Marks the row claimed without touching the hash.
+ */
+async function redeemLocalSignIn(token) {
+  const { verifyClaimToken, issueDirectorySession } = require("./directory-auth");
+  const payload = verifyClaimToken(token);
+  if (payload.purpose !== "signin") {
+    const err = new Error("This sign-in link is invalid.");
+    err.statusCode = 401;
+    throw err;
+  }
+  const db = await getLocalDatabase();
+  const person = (db.people || []).find((entry) => entry.id === payload.personId);
+  if (!person) {
+    const err = new Error("We could not find the profile for this link.");
+    err.statusCode = 404;
+    throw err;
+  }
+  const auth = await getLocalAuth();
+  const current = auth[person.id] || { passwordHash: "", claimedAt: "" };
+  if (!current.claimedAt) {
+    auth[person.id] = {
+      ...current,
+      passwordHash: current.passwordHash || "",
+      claimedAt: new Date().toISOString(),
+      mustChangePassword: false,
+    };
+    await saveLocalAuth(auth);
+  }
+  return {
+    person,
+    auth: issueDirectorySession({
+      person,
+      auth: { mustChangePassword: false },
+    }),
+  };
+}
+
 module.exports = {
   DATABASE_FILE,
   AUTH_FILE,
@@ -1182,6 +1220,7 @@ module.exports = {
   refreshLocalMemberSession,
   peekLocalClaim,
   claimLocalProfile,
+  redeemLocalSignIn,
   peekLocalInviteClaim,
   claimLocalProfileWithInvite,
   createLocalProfile,

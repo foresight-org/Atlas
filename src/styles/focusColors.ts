@@ -11,7 +11,7 @@ export const FOCUS_COLOR_ORDER = [
   "Nanotechnology",
   "Space",
   "Existential Hope",
-  "Not yet chosen",
+  "No focus area",
 ] as const;
 
 export type FocusColorName = (typeof FOCUS_COLOR_ORDER)[number];
@@ -23,7 +23,7 @@ export const FOCUS_CLUSTER_KEYS: Array<{ key: string; label: FocusColorName }> =
   { key: "focusNano", label: "Nanotechnology" },
   { key: "focusSpace", label: "Space" },
   { key: "focusHope", label: "Existential Hope" },
-  { key: "focusUnset", label: "Not yet chosen" },
+  { key: "focusUnset", label: "No focus area" },
 ];
 
 /**
@@ -37,11 +37,11 @@ const FOCUS_COLORS: Record<FocusColorName, { start: string; end: string; text: s
   Nanotechnology: { start: "#fff1e0", end: "#ffd7b0", text: "#8a4e28" },
   Space: { start: "#e6fbff", end: "#c2eef5", text: "#1a5c68" },
   "Existential Hope": { start: "#fde8f3", end: "#f6cfe4", text: "#7a3d62" },
-  "Not yet chosen": { start: "#f4f6f8", end: "#dce3ea", text: "#4b5563" },
+  "No focus area": { start: "#f4f6f8", end: "#dce3ea", text: "#4b5563" },
 };
 
 export function focusColor(name: string): { start: string; end: string; text: string } {
-  return FOCUS_COLORS[name as FocusColorName] ?? FOCUS_COLORS["Not yet chosen"];
+  return FOCUS_COLORS[name as FocusColorName] ?? FOCUS_COLORS["No focus area"];
 }
 
 export function getFocusGradient(name: string): string {
@@ -55,7 +55,7 @@ export function getFocusGradient(name: string): string {
  */
 export function focusMixBackground(counts: Record<string, number>): string {
   const parts = FOCUS_COLOR_ORDER.filter((name) => (Number(counts[name]) || 0) > 0);
-  if (parts.length <= 1) return getFocusGradient(parts[0] || "Not yet chosen");
+  if (parts.length <= 1) return getFocusGradient(parts[0] || "No focus area");
   const sweep = 360 / parts.length;
   const stops = parts.map((name, index) => {
     const start = index * sweep;

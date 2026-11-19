@@ -28,7 +28,6 @@ interface AppHeaderProps {
   /** Foresight Team only. Switches the atlas they are looking at, not their account. */
   onSwitchLayer?: (choice: "inner" | "community") => void;
   onOpenProfile: () => void;
-  onSignIn: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   onSignOut: () => void;
 }
 
@@ -43,7 +42,6 @@ export function AppHeader({
   communityLayer = false,
   onSwitchLayer,
   onOpenProfile,
-  onSignIn,
   onSignOut,
 }: AppHeaderProps) {
   const [nodeMenuOpen, setNodeMenuOpen] = useState(false);
@@ -477,14 +475,6 @@ export function AppHeader({
                   <DirectoryLoginForm
                     initialName={getLastSignedInName()}
                     onCancel={closeAccountDialog}
-                    onSubmit={async (username, password) => {
-                      const result = await onSignIn(username, password);
-                      if (result.ok) {
-                        closeAccountDialog();
-                        onOpenProfile();
-                      }
-                      return result;
-                    }}
                   />
                   <p className="mt-4 text-center text-[11px] leading-none text-gray-400">
                     <button

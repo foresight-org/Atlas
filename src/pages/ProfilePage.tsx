@@ -138,7 +138,6 @@ interface ProfilePageProps {
   person: Person | null;
   createMode: boolean;
   onNavigateHome: () => void;
-  onSignIn: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   onSignOut: () => void;
   onProfileSaved: (
     person: Person,
@@ -181,7 +180,6 @@ export function ProfilePage({
   person,
   createMode,
   onNavigateHome,
-  onSignIn,
   onSignOut,
   onProfileSaved,
   onExitCreateMode,
@@ -630,10 +628,7 @@ export function ProfilePage({
               <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
                 <Sparkles className="size-6" />
               </div>
-              <DirectoryLoginForm
-                initialName={getLastSignedInName()}
-                onSubmit={onSignIn}
-              />
+              <DirectoryLoginForm initialName={getLastSignedInName()} />
             </div>
           </section>
       </ProfilePageShell>

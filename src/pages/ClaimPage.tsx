@@ -13,7 +13,7 @@
  *   3. Hand off to the profile editor so they can flesh out their details.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, KeyRound, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import foresightIconUrl from "../assets/Foresight_RGB_Icon_Black.png?url";
@@ -39,6 +39,8 @@ interface ClaimPageProps {
   ) => Promise<{ ok: boolean; error?: string }>;
   /** Where to send the member once their profile is claimed. */
   onClaimed: () => void;
+  /** Email sign-in links open a session directly. No password. */
+  onMagicSignIn?: (token: string) => Promise<{ ok: boolean; error?: string }>;
   onNavigateHome: () => void;
 }
 
@@ -47,7 +49,7 @@ type PeekState =
   | {
       status: "ready";
       fullName: string;
-      mode: "claim" | "reset";
+      mode: "claim" | "reset" | "signin";
       needsEmail: boolean;
     }
   | { status: "claimed"; fullName: string }
@@ -60,6 +62,7 @@ export function ClaimPage({
   token,
   onClaim,
   onClaimed,
+  onMagicSignIn,
   onNavigateHome,
 }: ClaimPageProps) {
   const [peek, setPeek] = useState<PeekState>({ status: "loading" });
@@ -69,6 +72,7 @@ export function ClaimPage({
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const magicStarted = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +90,7 @@ export function ClaimPage({
             : {
                 status: "ready",
                 fullName: result.person.fullName,
-                mode: result.mode === "reset" ? "reset" : "claim",
+                mode: result.mode === "signin" || result.mode === "reset" ? result.mode : "claim",
                 needsEmail: Boolean(result.needsEmail),
               },
         );
@@ -103,6 +107,21 @@ export function ClaimPage({
       cancelled = true;
     };
   }, [token]);
+
+  useEffect(() => {
+    if (peek.status !== "ready" || peek.mode !== "signin" || !token || !onMagicSignIn) return;
+    if (magicStarted.current) return;
+    magicStarted.current = true;
+    setIsSubmitting(true);
+    void onMagicSignIn(token).then((result) => {
+      if (result.ok) {
+        onClaimed();
+        return;
+      }
+      setIsSubmitting(false);
+      setPeek({ status: "error", message: result.error || "This sign-in link could not be used." });
+    });
+  }, [peek, token, onMagicSignIn, onClaimed]);
 
   const canSubmit = useMemo(() => {
     if (peek.status !== "ready") return false;
@@ -252,7 +271,22 @@ export function ClaimPage({
           </div>
         )}
 
-        {peek.status === "ready" && (
+        {peek.status === "ready" && peek.mode === "signin" && (
+          <div className="mt-6">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-sky-600/80">
+              Sign in
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">
+              Signing in {firstName(peek.fullName)}
+            </h1>
+            <p className="mt-3 flex items-center gap-2 text-sm text-gray-600">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Opening your atlas.
+            </p>
+          </div>
+        )}
+
+        {peek.status === "ready" && peek.mode !== "signin" && (
           <form onSubmit={handleSubmit} className="mt-6 space-y-6">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-sky-600/80">

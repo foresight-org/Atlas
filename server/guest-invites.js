@@ -3,10 +3,10 @@
 /**
  * Turn an event guest list into community accounts.
  *
- * Each new person gets a RealData row with no password, then a claim link.
+ * Each new person gets a RealData row with no password, then a sign-in link.
  * People who already set a password are left alone. A name that already
- * belongs to a different email is skipped, so a guest cannot land on
- * someone else's sign-in.
+ * belongs to a different email is not duplicated: the team can mail the
+ * address already on file, or connect the new address to that same row.
  *
  * The reminder is scheduled with Resend for 14 days later. That is inside
  * Resend's 30-day scheduling window, so no second cron is required.
@@ -15,7 +15,8 @@
 
 const crypto = require("crypto");
 const { parseGuestCsv, normalizeEmail } = require("./guest-csv");
-const { issueClaimToken } = require("./directory-auth");
+const { issueSignInToken, SIGNIN_INVITE_TTL_MS } = require("./directory-auth");
+const { addOtherEmail, findRecordsByEmail, accountEmails, maskEmail } = require("./account-emails");
 const { isCommunityPerson, isForesightTeamPerson } = require("./role-types");
 const { mailConfigured, sendMail, fromAddress } = require("./mail");
 const { normalizeName } = require("./realdata-store");
@@ -32,8 +33,9 @@ function dayStamp() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function claimUrl(origin, personId) {
-  return `${origin}/claim?token=${encodeURIComponent(issueClaimToken(personId))}`;
+function signInUrl(origin, personId) {
+  const token = issueSignInToken(personId, SIGNIN_INVITE_TTL_MS);
+  return `${origin}/claim?token=${encodeURIComponent(token)}`;
 }
 
 function eventPhrase(eventName) {
@@ -51,17 +53,17 @@ function renderInvite(guest, link, eventName) {
     `You were at ${where}. This is your personal link to a Foresight Atlas community account, so you can meet other people who have been to our events.`,
     link,
     "",
-    "After you claim it, you can also connect an assistant: https://atlas.foresight.org/assistant",
+    "After you sign in, you can also connect an assistant: https://atlas.foresight.org/assistant",
     "",
-    "The link sets your password. It works once. If you were not expecting this, you can ignore it.",
+    "The link signs you in. It works for 30 days. If you were not expecting this, you can ignore it.",
     "",
     "— Foresight Atlas",
   ].join("\n");
   const html = `<p>Hi ${escapeHtml(hello)},</p>
 <p>You were at ${escapeHtml(where)}. This is your personal link to a Foresight Atlas community account, so you can meet other people who have been to our events.</p>
-<p><a href="${escapeAttr(link)}">Claim your account</a></p>
-<p>After you claim it, you can also <a href="https://atlas.foresight.org/assistant">connect an assistant</a>.</p>
-<p style="color:#666;font-size:14px">The link sets your password. It works once. If you were not expecting this, you can ignore it.</p>
+<p><a href="${escapeAttr(link)}">Sign in</a></p>
+<p>After you sign in, you can also <a href="https://atlas.foresight.org/assistant">connect an assistant</a>.</p>
+<p style="color:#666;font-size:14px">The link signs you in. It works for 30 days. If you were not expecting this, you can ignore it.</p>
 <p>— Foresight Atlas</p>`;
   return { subject, text, html };
 }
@@ -101,12 +103,12 @@ function escapeAttr(value) {
 }
 
 function classify(guest, records) {
-  const email = normalizeEmail(guest.email);
-  const byEmail = records.find(
-    (record) => normalizeEmail(record.person?.email) === email,
-  );
-  if (byEmail) {
-    if (byEmail.auth?.passwordHash) return { kind: "already_member", record: byEmail };
+  const matches = findRecordsByEmail(records, guest.email);
+  if (matches.length > 0) {
+    const byEmail = matches[0];
+    if (byEmail.auth?.passwordHash || byEmail.auth?.claimedAt) {
+      return { kind: "already_member", record: byEmail };
+    }
     return { kind: "unclaimed", record: byEmail };
   }
   const sameName = records.find(
@@ -116,9 +118,72 @@ function classify(guest, records) {
   return { kind: "new" };
 }
 
+function resolutionFor(guest, resolutions) {
+  const want = normalizeEmail(guest.email);
+  const row = (resolutions || []).find((entry) => normalizeEmail(entry?.email) === want);
+  const action = String(row?.action || "").trim();
+  if (action === "link" || action === "connect" || action === "skip") return action;
+  return "skip";
+}
+
 /**
- * @param {{ csv: string, eventName?: string, dryRun?: boolean, offset?: number, origin: string }} input
+ * @param {{ csv: string, eventName?: string, dryRun?: boolean, offset?: number, origin: string, resolutions?: Array<{ email: string, action: string }> }} input
  */
+function renderExistingSignIn(fullName, link) {
+  const hello = fullName || "there";
+  const subject = "Sign in to your Foresight Atlas account";
+  const text = [
+    `Hi ${hello},`,
+    "",
+    "A guest list had your name with a different email. We kept that on the account you already have, instead of making a second one.",
+    "",
+    "This link signs you in:",
+    link,
+    "",
+    "It works for 30 days. If this was not you, you can ignore it.",
+    "",
+    "— Foresight Atlas",
+  ].join("\n");
+  const html = `<p>Hi ${escapeHtml(hello)},</p>
+<p>A guest list had your name with a different email. We kept that on the account you already have, instead of making a second one.</p>
+<p><a href="${escapeAttr(link)}">Sign in</a></p>
+<p style="color:#666;font-size:14px">It works for 30 days. If this was not you, you can ignore it.</p>`;
+  return { subject, text, html };
+}
+
+async function resolveNameTaken(guest, record, action, loaded, records, origin, eventName) {
+  if (action !== "link" && action !== "connect") return { status: "name_taken" };
+  const { cloneRecord, upsertRealDataRecord } = require("./realdata-store");
+  if (action === "connect") {
+    const elsewhere = findRecordsByEmail(records, guest.email).some(
+      (entry) => entry.person?.id !== record.person.id,
+    );
+    if (elsewhere) return { status: "email_taken" };
+    const updated = cloneRecord(record);
+    addOtherEmail(updated.person, guest.email);
+    await upsertRealDataRecord(loaded.sheets, loaded.sheetName, updated);
+    record.person.otherEmails = updated.person.otherEmails;
+    const link = signInUrl(origin, record.person.id);
+    const sent = await sendMail({
+      to: guest.email,
+      ...renderInvite(guest, link, eventName),
+      idempotencyKey: `atlas-guest-connect/${emailKey(guest.email)}/${dayStamp()}`,
+    });
+    if (!sent.sent) return { status: sent.reason === "quota" ? "quota" : "mail_failed" };
+    return { status: "connected" };
+  }
+  const existing = accountEmails(record.person)[0];
+  if (!existing) return { status: "no_email" };
+  const link = signInUrl(origin, record.person.id);
+  const sent = await sendMail({
+    to: existing,
+    ...renderExistingSignIn(record.person.fullName, link),
+    idempotencyKey: `atlas-guest-existing/${emailKey(existing)}/${dayStamp()}`,
+  });
+  if (!sent.sent) return { status: sent.reason === "quota" ? "quota" : "mail_failed" };
+  return { status: "signin_sent" };
+}
+
 async function runGuestInvites(input) {
   const parsed = parseGuestCsv(input.csv);
   if (parsed.errors.length && parsed.guests.length === 0) {
@@ -153,12 +218,14 @@ async function runGuestInvites(input) {
             ? "Community"
             : row.record.person.roleType || "Member"
         : "Community";
+      const existing = row.kind === "name_taken" ? accountEmails(row.record.person)[0] : "";
       preview.push({
         line: guest.line,
         firstName: guest.firstName,
         email: guest.email,
         action: row.kind === "new" || row.kind === "unclaimed" ? "invite" : row.kind,
         role,
+        ...(existing ? { maskedEmail: maskEmail(existing) } : {}),
       });
     }
     return {
@@ -189,7 +256,18 @@ async function runGuestInvites(input) {
       continue;
     }
     if (row.kind === "name_taken") {
-      results.push({ email: guest.email, firstName: guest.firstName, status: "name_taken" });
+      const action = resolutionFor(guest, input.resolutions);
+      const handled = await resolveNameTaken(
+        guest,
+        row.record,
+        action,
+        loaded,
+        records,
+        input.origin,
+        input.eventName,
+      );
+      results.push({ email: guest.email, firstName: guest.firstName, ...handled });
+      if (handled.status === "quota") break;
       continue;
     }
 
@@ -211,7 +289,7 @@ async function runGuestInvites(input) {
       }
     }
 
-    const link = claimUrl(input.origin, personId);
+    const link = signInUrl(input.origin, personId);
     const key = emailKey(guest.email);
     const day = dayStamp();
     const invite = renderInvite(guest, link, input.eventName);

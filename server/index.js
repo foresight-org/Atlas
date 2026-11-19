@@ -293,6 +293,41 @@ app.post("/api/member-invite-claim", async (req, res) => {
  * POST /api/member-access-request
  * Self-serve claim / password-reset magic link (Resend). Anti-enumeration.
  */
+app.post("/api/member-login-link", async (req, res) => {
+  try {
+    const { requestLoginLink } = require("./login-link");
+    const result = await requestLoginLink(req, req.body || {});
+    return res.json(result);
+  } catch (error) {
+    const status =
+      error && typeof error === "object" && typeof error.statusCode === "number"
+        ? error.statusCode
+        : 400;
+    if (status === 429 && error.retryAfterSec) {
+      res.setHeader("Retry-After", String(error.retryAfterSec));
+    }
+    res.status(status).json({
+      error: error instanceof Error ? error.message : "Could not send a sign-in link",
+    });
+  }
+});
+
+app.post("/api/member-login-redeem", async (req, res) => {
+  try {
+    const { redeemLoginLink } = require("./login-link");
+    const result = await redeemLoginLink(req.body?.token);
+    return res.json(result);
+  } catch (error) {
+    const status =
+      error && typeof error === "object" && typeof error.statusCode === "number"
+        ? error.statusCode
+        : 401;
+    res.status(status).json({
+      error: error instanceof Error ? error.message : "This sign-in link could not be used",
+    });
+  }
+});
+
 app.post("/api/member-access-request", async (req, res) => {
   try {
     const { requestAccessLink } = require("./access-request");

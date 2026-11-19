@@ -15,7 +15,7 @@ export interface ClaimPeekResult {
   person: { id: string; fullName: string };
   alreadyClaimed: boolean;
   /** "claim" = first-time setup, "reset" = forgotten-password link. */
-  mode?: "claim" | "reset";
+  mode?: "claim" | "reset" | "signin";
   /** True when the roster has no email yet — claim form asks for one. */
   needsEmail?: boolean;
 }
