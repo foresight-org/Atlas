@@ -51,7 +51,6 @@ type DatabaseScope = "full" | "map" | "programming";
 let mapCache: CachedDatabase | null = null;
 let mapCachedAt = 0;
 let mapRequest: AtlasLayerChoice = "inner";
-let mapFlight: Promise<CachedDatabase> | null = null;
 
 let programmingCache: CachedDatabase | null = null;
 let programmingCachedAt = 0;
@@ -62,7 +61,6 @@ let lastServedLayer: AtlasLayerChoice = "inner";
 export function getLastServedLayer(): AtlasLayerChoice {
   return lastServedLayer;
 }
-let programmingFlight: Promise<CachedDatabase> | null = null;
 
 /**
  * How long a cached `/api/database` payload is considered fresh.
@@ -76,11 +74,27 @@ let programmingFlight: Promise<CachedDatabase> | null = null;
 const DATABASE_MAX_AGE_MS = 10 * 60 * 1000;
 
 /**
- * De-duplicates concurrent callers. If two components mount at the same
- * time and both call `getAllPeople()`, they'll share a single in-flight
- * network request instead of hammering the sheet twice.
+ * One in-flight read per atlas layer. Two callers of the same layer share
+ * the request. A switch to the other layer starts its own, and does not
+ * reuse the payload already on the wire.
  */
-let inFlightFetch: Promise<CachedDatabase> | null = null;
+type LayerFlight = { layer: AtlasLayerChoice; promise: Promise<CachedDatabase> };
+const fullSlot: { flight: LayerFlight | null } = { flight: null };
+const mapSlot: { flight: LayerFlight | null } = { flight: null };
+const programmingSlot: { flight: LayerFlight | null } = { flight: null };
+
+function takeFlight(
+  slot: { flight: LayerFlight | null },
+  requested: AtlasLayerChoice,
+  load: () => Promise<CachedDatabase>,
+): Promise<CachedDatabase> {
+  if (slot.flight?.layer === requested) return slot.flight.promise;
+  const promise = load().finally(() => {
+    if (slot.flight?.promise === promise) slot.flight = null;
+  });
+  slot.flight = { layer: requested, promise };
+  return promise;
+}
 
 const FETCH_TIMEOUT_MS = 15_000;
 
@@ -127,13 +141,15 @@ async function fetchWithTimeout(url: string): Promise<Response> {
   }
 }
 
-async function fetchScoped(scope: DatabaseScope): Promise<CachedDatabase> {
+async function fetchScoped(scope: DatabaseScope, requested: AtlasLayerChoice): Promise<CachedDatabase> {
   const apiBase = getApiBase();
-  const requested = getTeamLayerChoice();
   const layerQuery = requested === "community" ? "&layer=community" : "";
   const apiUrl = `${apiBase}/database?scope=${scope}${layerQuery}`.replace(/([^:]\/)\/+/g, "$1");
   const response = await fetchWithTimeout(apiUrl);
-  lastServedLayer = response.headers.get("X-Atlas-Layer") === "community" ? "community" : "inner";
+  // A switch that happened while this request was open must not overwrite the layer the member just chose.
+  if (getTeamLayerChoice() === requested) {
+    lastServedLayer = response.headers.get("X-Atlas-Layer") === "community" ? "community" : "inner";
+  }
   if (response.status === 401) {
     throw new UnauthorizedError();
   }
@@ -160,55 +176,45 @@ async function fetchScoped(scope: DatabaseScope): Promise<CachedDatabase> {
  * is off, so the old single request is one flip away.
  */
 async function fetchDatabase(): Promise<CachedDatabase> {
-  if (cachedDatabase && cachedRequest === getTeamLayerChoice() && Date.now() - cachedAt < DATABASE_MAX_AGE_MS) {
+  const requested = getTeamLayerChoice();
+  if (cachedDatabase && cachedRequest === requested && Date.now() - cachedAt < DATABASE_MAX_AGE_MS) {
     return cachedDatabase;
   }
-  if (inFlightFetch) return inFlightFetch;
-
-  inFlightFetch = (async () => {
-    try {
-      const raw = await fetchScoped("full");
-      if (!Array.isArray(raw.people)) {
-        throw new Error("Invalid response: missing or non-array 'people'.");
-      }
-      raw.people = dedupePeople(raw.people as unknown[]);
+  return takeFlight(fullSlot, requested, async () => {
+    const raw = await fetchScoped("full", requested);
+    if (!Array.isArray(raw.people)) {
+      throw new Error("Invalid response: missing or non-array 'people'.");
+    }
+    raw.people = dedupePeople(raw.people as unknown[]);
+    if (getTeamLayerChoice() === requested) {
       cachedDatabase = raw;
       cachedAt = Date.now();
-      cachedRequest = getTeamLayerChoice();
-      return cachedDatabase;
-    } finally {
-      inFlightFetch = null;
+      cachedRequest = requested;
     }
-  })();
-
-  return inFlightFetch;
+    return raw;
+  });
 }
 
 /** Live people + travel. Does not wait on Luma. */
 async function fetchMapDatabase(): Promise<CachedDatabase> {
-  if (mapCache && mapRequest === getTeamLayerChoice() && Date.now() - mapCachedAt < DATABASE_MAX_AGE_MS) {
+  const requested = getTeamLayerChoice();
+  if (mapCache && mapRequest === requested && Date.now() - mapCachedAt < DATABASE_MAX_AGE_MS) {
     return mapCache;
   }
-  if (mapFlight) return mapFlight;
-
-  mapFlight = (async () => {
-    try {
-      const raw = await fetchScoped("map");
-      if (!Array.isArray(raw.people)) {
-        throw new Error("Invalid response: missing or non-array 'people'.");
-      }
-      raw.people = dedupePeople(raw.people as unknown[]);
-      raw.travelWindows = Array.isArray(raw.travelWindows) ? raw.travelWindows : [];
+  return takeFlight(mapSlot, requested, async () => {
+    const raw = await fetchScoped("map", requested);
+    if (!Array.isArray(raw.people)) {
+      throw new Error("Invalid response: missing or non-array 'people'.");
+    }
+    raw.people = dedupePeople(raw.people as unknown[]);
+    raw.travelWindows = Array.isArray(raw.travelWindows) ? raw.travelWindows : [];
+    if (getTeamLayerChoice() === requested) {
       mapCache = raw;
       mapCachedAt = Date.now();
-      mapRequest = getTeamLayerChoice();
-      return mapCache;
-    } finally {
-      mapFlight = null;
+      mapRequest = requested;
     }
-  })();
-
-  return mapFlight;
+    return raw;
+  });
 }
 
 /**
@@ -216,26 +222,21 @@ async function fetchMapDatabase(): Promise<CachedDatabase> {
  * the programming page so two screens do not start two Luma merges.
  */
 export async function fetchProgrammingDatabase(): Promise<CachedDatabase> {
-  if (programmingCache && programmingRequest === getTeamLayerChoice() && Date.now() - programmingCachedAt < DATABASE_MAX_AGE_MS) {
+  const requested = getTeamLayerChoice();
+  if (programmingCache && programmingRequest === requested && Date.now() - programmingCachedAt < DATABASE_MAX_AGE_MS) {
     return programmingCache;
   }
-  if (programmingFlight) return programmingFlight;
-
-  programmingFlight = (async () => {
-    try {
-      const raw = await fetchScoped("programming");
-      raw.events = Array.isArray(raw.events) ? raw.events : [];
-      raw.rsvps = Array.isArray(raw.rsvps) ? raw.rsvps : [];
+  return takeFlight(programmingSlot, requested, async () => {
+    const raw = await fetchScoped("programming", requested);
+    raw.events = Array.isArray(raw.events) ? raw.events : [];
+    raw.rsvps = Array.isArray(raw.rsvps) ? raw.rsvps : [];
+    if (getTeamLayerChoice() === requested) {
       programmingCache = raw;
       programmingCachedAt = Date.now();
-      programmingRequest = getTeamLayerChoice();
-      return programmingCache;
-    } finally {
-      programmingFlight = null;
+      programmingRequest = requested;
     }
-  })();
-
-  return programmingFlight;
+    return raw;
+  });
 }
 
 function directorySource(): Promise<CachedDatabase> {

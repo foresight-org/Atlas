@@ -19,9 +19,11 @@
       </div>
       <script>
         window.__bootError = null;
+        window.__atlasReady = false;
         window.__showBootError = function(msg, detail) {
           var root = document.getElementById("root");
-          if (!root || window.__bootError) return;
+          // Once React is up, a later rejection must not wipe the page. The app handles those itself.
+          if (!root || window.__bootError || window.__atlasReady) return;
           window.__bootError = true;
           root.innerHTML = '<div style="min-height: 100vh; background: #fef2f2; padding: 1.5rem; font-family: system-ui; color: #991b1b;">' +
             '<h1 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">App failed to start</h1>' +

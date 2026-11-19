@@ -39,6 +39,7 @@ try {
       <Analytics />
     </ErrorBoundary>,
   );
+  (window as Window & { __atlasReady?: boolean }).__atlasReady = true;
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
   showBootError(message, err);

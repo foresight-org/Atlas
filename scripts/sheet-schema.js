@@ -109,9 +109,9 @@ const PEOPLE_AUTH_HEADERS = [
  *   and sending claim / invite links.
  * - currentlyLookingFor: one public sentence — what they want to build now,
  *   or the one thing they want to be contacted about. Empty until they write it.
- * - visibleToCommunity: when TRUE an inner profile also appears on the wider
- *   community atlas. Missing cells are not visible. Foresight Team is shown
- *   there by role, and a private profile stays hidden either way.
+ * - visibleToCommunity: stored on the row. The community atlas does not read it.
+ *   That view is community accounts and non-private Foresight Team only.
+ *   Do not delete or reorder this column.
  */
 const PEOPLE_EXTENDED_HEADERS = ["isPrivate", "email", "currentlyLookingFor", "visibleToCommunity"];
 

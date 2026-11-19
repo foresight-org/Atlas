@@ -2,7 +2,7 @@
  * Which atlas a Foresight Team member is looking at.
  *
  * The choice is only a request. The server still decides, and a community
- * account cannot ask for the inner atlas. Nodes stay on the inner side.
+ * account cannot ask for the inner atlas. The switch itself is an admin right.
  */
 
 const STORAGE_KEY = "foresightatlas_team_layer";

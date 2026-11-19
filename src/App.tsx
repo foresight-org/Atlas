@@ -14,7 +14,6 @@ import {
   getAllPeople,
   getAllTravelWindows,
   getRsvps,
-  getLastServedLayer,
   invalidateDatabaseCache,
   UnauthorizedError,
 } from "./services/database";
@@ -132,7 +131,6 @@ export default function App() {
   const [selfPerson, setSelfPerson] = useState<Person | null>(null);
   /** Team-only request. The server confirms it in the response before the view sticks. */
   const [layerChoice, setLayerChoice] = useState<AtlasLayerChoice>(() => getTeamLayerChoice());
-  const [servedLayer, setServedLayer] = useState<AtlasLayerChoice>("inner");
   /** Bumps when bookmarks sync or toggle so ConnectionsPage re-reads. */
   const [connectionsVersion, setConnectionsVersion] = useState(0);
   /** Shared with MapView so the mobile list sheet can open the same nav menu as the header hamburger. */
@@ -353,6 +351,7 @@ export default function App() {
    */
   const loadData = async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent === true;
+    const requested = getTeamLayerChoice();
     try {
       if (!silent) {
         setIsLoading(true);
@@ -364,22 +363,22 @@ export default function App() {
           getAllTravelWindows(),
           loadEvents(),
         ]);
-      setPeople(peopleData);
-      setTravelWindows(travelWindowsData);
-      setEvents(eventsData);
-      setServedLayer(getLastServedLayer());
-      if (silent) setError(null);
-      return;
-    }
+        if (getTeamLayerChoice() !== requested) return;
+        setPeople(peopleData);
+        setTravelWindows(travelWindowsData);
+        setEvents(eventsData);
+        if (silent) setError(null);
+        return;
+      }
 
       // Pins first. Luma and RSVPs are still live; they just don't hold the mark.
       const [peopleData, travelWindowsData] = await Promise.all([
         getAllPeople(),
         getAllTravelWindows(),
       ]);
+      if (getTeamLayerChoice() !== requested) return;
       setPeople(peopleData);
       setTravelWindows(travelWindowsData);
-      setServedLayer(getLastServedLayer());
       if (silent) setError(null);
       void loadEvents()
         .then((eventsData) => {
@@ -727,9 +726,8 @@ export default function App() {
   const signedInRole = getPrimaryRoleType(signedInPerson);
   const communityAccount = signedInRole === "Community";
   const teamViewer = signedInRole === "Foresight Team";
-  // Nodes stay off the community view. Programming and RSVPs stay on.
-  const communityLayer =
-    communityAccount || (teamViewer && (layerChoice === "community" || servedLayer === "community"));
+  // The admin's choice wins immediately. A community account has no choice.
+  const communityLayer = communityAccount || (teamViewer && layerChoice === "community");
 
   useEffect(() => {
     setMapLocationNudgeHidden(false);
@@ -782,6 +780,7 @@ export default function App() {
       initialNode={(route === "/berlin" ? "berlin" : route === "/sf" ? "sf" : "global") as NodeSlug}
       people={people}
       identity={identity}
+      communityView={communityLayer}
       onNavigateHome={() => navigate("/")}
       onNavigateNode={(slug) => navigate(`/${slug}`)}
       onShowEventOnMap={handleShowEventOnMap}
@@ -937,7 +936,10 @@ export default function App() {
           defaultYear={today.getFullYear()}
           mobileMenuOpen={mobileMenuOpen}
           onMobileMenuToggle={() => setMobileMenuOpen((o) => !o)}
-          showNodes={!communityLayer}
+          showNodes
+          nodeMemory={!communityLayer}
+          onOpenNodeProgramming={(slug) => navigate(`/${slug}`)}
+          rosterTitle={communityLayer ? "Team and community" : undefined}
         />
       </div>
     </>
@@ -1062,6 +1064,9 @@ export default function App() {
               ? (choice) => {
                   setTeamLayerChoice(choice);
                   setLayerChoice(choice);
+                  if (choice === "community") {
+                    setFilters((current) => ({ ...current, programs: [], communityFilter: "all" }));
+                  }
                   invalidateDatabaseCache("all");
                   void loadData();
                 }

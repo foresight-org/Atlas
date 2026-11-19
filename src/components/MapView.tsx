@@ -37,6 +37,7 @@ import { MapProjectionToggle } from "./map/MapProjectionToggle";
 import { FlatNodeMarkers } from "./map/FlatNodeMarkers";
 import { AtlasSurfaceToggle, type AtlasSurface } from "./nodes/AtlasSurfaceToggle";
 import { NodeMemoryPanel } from "./nodes/NodeMemoryPanel";
+import { CommunityPlaceCard } from "./nodes/CommunityPlaceCard";
 import { MEMORY_PLACES, MEMORY_ARCS } from "../data/nodeMemoryPlaces";
 import {
   buildPopupHtml,
@@ -76,8 +77,16 @@ interface MapViewProps {
   /** Same mobile nav menu as App header — list sheet toggles it from the top bar */
   mobileMenuOpen?: boolean;
   onMobileMenuToggle?: () => void;
-  /** Community accounts stay on the people map. Node memory is the inner atlas. */
+  /** Pins for Berlin, SF, and the other places. Community sees them too. */
   showNodes?: boolean;
+  /**
+   * Internal atlas opens the knowledge graph. Community opens Berlin and
+   * San Francisco programming, and a name card for every other place.
+   */
+  nodeMemory?: boolean;
+  onOpenNodeProgramming?: (slug: "berlin" | "sf") => void;
+  /** Sidebar heading. Community is the team and community accounts. */
+  rosterTitle?: string;
 }
 
 /**
@@ -661,6 +670,9 @@ export function MapView({
   mobileMenuOpen = false,
   onMobileMenuToggle,
   showNodes = true,
+  nodeMemory = true,
+  onOpenNodeProgramming,
+  rosterTitle = "Grantees, Fellows, Nodees & Alumni",
 }: MapViewProps) {
   const [globeAvailable] = useState(() => GLOBE_MAP_ENABLED && supportsWebGL());
   const [projection, setProjection] = useState<MapProjection>(() =>
@@ -709,10 +721,21 @@ export function MapView({
   // Keep refs to each person card so we can scroll them into view
   const personRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const selectedPlace = useMemo(
-    () => MEMORY_PLACES.find((place) => place.id === selectedPlaceId && place.kind !== "conversation") ?? null,
-    [selectedPlaceId],
-  );
+  const selectedPlace = useMemo(() => {
+    const place = MEMORY_PLACES.find((entry) => entry.id === selectedPlaceId) ?? null;
+    if (!place) return null;
+    // In conversation, the pin is visible and not a graph. Community may still read the name.
+    if (nodeMemory && place.kind === "conversation") return null;
+    return place;
+  }, [selectedPlaceId, nodeMemory]);
+
+  const openPlace = useCallback((id: string) => {
+    if (!nodeMemory && (id === "berlin" || id === "sf")) {
+      onOpenNodeProgramming?.(id);
+      return;
+    }
+    setSelectedPlaceId(id);
+  }, [nodeMemory, onOpenNodeProgramming]);
 
   const chooseSurface = useCallback((next: AtlasSurface) => {
     setSurface(next);
@@ -1210,7 +1233,7 @@ export function MapView({
               memoryPlaces={MEMORY_PLACES}
               memoryArcs={MEMORY_ARCS}
               selectedMemoryId={selectedPlaceId}
-              onMemorySelect={setSelectedPlaceId}
+              onMemorySelect={openPlace}
               onMemoryClear={closeMemory}
             />
           </Suspense>
@@ -1259,7 +1282,7 @@ export function MapView({
                 places={MEMORY_PLACES}
                 iconUrl={foresightIcon}
                 selectedId={selectedPlaceId}
-                onSelect={setSelectedPlaceId}
+                onSelect={openPlace}
                 onClear={closeMemory}
               />
             )}
@@ -1364,12 +1387,16 @@ export function MapView({
           className="atlas-node-sheet"
           style={{ zIndex: Z_INDEX_MOBILE_SIDEBAR_SHEET }}
         >
-          <NodeMemoryPanel
-            place={selectedPlace}
-            people={directory ?? filteredPeople}
-            onClose={closeMemory}
-            onViewPerson={(id) => onViewPersonDetails?.(id)}
-          />
+          {nodeMemory ? (
+            <NodeMemoryPanel
+              place={selectedPlace}
+              people={directory ?? filteredPeople}
+              onClose={closeMemory}
+              onViewPerson={(id) => onViewPersonDetails?.(id)}
+            />
+          ) : (
+            <CommunityPlaceCard place={selectedPlace} onClose={closeMemory} />
+          )}
         </div>
       ) : null}
 
@@ -1414,7 +1441,7 @@ export function MapView({
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="text-gray-900 font-semibold truncate font-heading">
-                    {selectedMarker ? selectedMarkerLabel : "Grantees, Fellows, Nodees & Alumni"}
+                    {selectedMarker ? selectedMarkerLabel : rosterTitle}
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {selectedMarker
@@ -1460,12 +1487,16 @@ export function MapView({
       {/* Mobile: full-screen fellows sheet — above header/hamburger so list is on top */}
       {showNodes && isDesktopSplit && surface === "nodes" && selectedPlace ? (
         <div className="atlas-node-column" style={{ zIndex: Z_INDEX_SIDEBAR }}>
-          <NodeMemoryPanel
-            place={selectedPlace}
-            people={directory ?? filteredPeople}
-            onClose={closeMemory}
-            onViewPerson={(id) => onViewPersonDetails?.(id)}
-          />
+          {nodeMemory ? (
+            <NodeMemoryPanel
+              place={selectedPlace}
+              people={directory ?? filteredPeople}
+              onClose={closeMemory}
+              onViewPerson={(id) => onViewPersonDetails?.(id)}
+            />
+          ) : (
+            <CommunityPlaceCard place={selectedPlace} onClose={closeMemory} />
+          )}
         </div>
       ) : null}
 
@@ -1479,7 +1510,7 @@ export function MapView({
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
                 <h3 className="truncate font-heading text-[13px] font-semibold leading-tight tracking-tight text-gray-900 sm:text-sm">
-                  {selectedMarker ? selectedMarkerLabel : "Grantees, Fellows, Nodees & Alumni"}
+                  {selectedMarker ? selectedMarkerLabel : rosterTitle}
                 </h3>
                 <p className="mt-0.5 truncate text-[11px] leading-snug text-gray-500">
                   {selectedMarker

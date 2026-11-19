@@ -174,7 +174,9 @@ export function AppHeader({
           {/* Desktop nav — original pill-style Map + Programming */}
           <div className="header-desktop-nav flex-shrink-0 items-center gap-1 sm:gap-2">
             {onSwitchLayer ? (
-              <div className="mr-1 flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="Which atlas">
+              <div className="mr-1 flex flex-col items-stretch gap-0.5">
+              <span className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Admin</span>
+              <div className="flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="Admin view">
                 <button
                   type="button"
                   aria-pressed={!communityLayer}
@@ -195,6 +197,7 @@ export function AppHeader({
                 >
                   Community
                 </button>
+              </div>
               </div>
             ) : null}
             <button
@@ -568,7 +571,9 @@ export function AppHeader({
             <nav className="flex-1 overflow-auto py-4 px-3" aria-label="Main navigation">
               <ul className="space-y-1.5">
                 {onSwitchLayer ? (
-                  <li className="mb-2 flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="Which atlas">
+                  <li className="mb-2">
+                    <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Admin</p>
+                  <div className="flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="Admin view">
                     <button
                       type="button"
                       aria-pressed={!communityLayer}
@@ -595,6 +600,7 @@ export function AppHeader({
                     >
                       Community
                     </button>
+                  </div>
                   </li>
                 ) : null}
                 <li>

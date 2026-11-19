@@ -3,8 +3,9 @@
 /**
  * Two atlases from one roster.
  *
- * A community account sees other community profiles, the team, and any
- * inner profile that opted in. Events and RSVPs for those people come too.
+ * A community account sees other community profiles and the team.
+ * Fellows, grantees, prize winners, and nodees stay on the inner atlas.
+ * Events and RSVPs for the people on this view come too.
  * Node memory stays on the inner atlas. Inner accounts do not see community
  * signups mixed into the fellow map.
  * The split happens before a response is sent. The shared cache stores both
@@ -36,11 +37,14 @@ function layerMapFromRecords(records) {
   return layer;
 }
 
-/** Who may appear on the wider community atlas. Private profiles never do. */
+/**
+ * Who may appear on the wider community atlas. Private profiles never do.
+ * The community view is the team and community accounts. An inner member
+ * does not cross over by opting in.
+ */
 function sharesCommunityAtlas(person) {
   if (!person?.id || person.isPrivate === true) return false;
-  if (isCommunityPerson(person) || isForesightTeamPerson(person)) return true;
-  return person.visibleToCommunity === true;
+  return isCommunityPerson(person) || isForesightTeamPerson(person);
 }
 
 function requestedDirectoryLayer(query) {

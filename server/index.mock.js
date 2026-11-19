@@ -145,7 +145,7 @@ app.get("/api/database", async (req, res) => {
       scope === "map"
         ? { people: database.people, travelWindows: database.travelWindows || [], _layer: layer }
         : scope === "programming"
-          ? { events: database.events, rsvps: database.rsvps, _layer: layer }
+          ? { people: database.people, events: database.events, rsvps: database.rsvps, _layer: layer }
           : { ...database, _layer: layer };
     const views = splitDirectory(payload);
     const view = directoryViewFor(layer, session.personId, requestedDirectoryLayer(req.query));

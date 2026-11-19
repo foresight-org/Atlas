@@ -12,7 +12,7 @@ const { sharesCommunityAtlas } = require("../directory-layer");
 
 /**
  * The assistant sees the same layer as the website. A community account
- * sees community profiles, the team, opted-in fellows, and programming.
+ * sees community profiles, the team, and programming.
  * Node memory is not in this snapshot.
  */
 function scopedCommunity(member, community) {

@@ -19,6 +19,14 @@ export const PROFILE_ROLE_TYPE_OPTIONS: RoleType[] = VALID_ROLE_TYPES.filter(
 
 const NODE_ADDABLE: RoleType[] = ["Fellow", "Grantee"];
 
+/** What the signed-in member reads in their profile. Team is admin. */
+export function profileRoleLabel(
+  person: Pick<Person, "roleType" | "roleTypes"> | null | undefined,
+): string {
+  const role = lockedPrimaryRole(person);
+  return role === "Foresight Team" ? "Admin" : role;
+}
+
 /** The invite or sheet role. Nodee is an addition, not a replacement. */
 export function lockedPrimaryRole(
   person: Pick<Person, "roleType" | "roleTypes"> | null | undefined,

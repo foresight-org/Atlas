@@ -75,6 +75,7 @@ import {
   JOIN_ROLE_TYPE_OPTIONS,
   canAlsoBeNodee,
   lockedPrimaryRole,
+  profileRoleLabel,
   withNodeeChoice,
 } from "../utils/roleTypes";
 import {
@@ -901,13 +902,15 @@ export function ProfilePage({
                   <Field
                     label="Role"
                     description={
-                      canAlsoBeNodee(draft)
-                        ? "Your fellow or grantee role comes from your invite. You can also be a nodee."
-                        : "Set by your invite or by Foresight. It can’t be changed here."
+                      lockedPrimaryRole(draft) === "Foresight Team"
+                        ? "You’re an admin. One of your rights is switching between the internal atlas and the community view."
+                        : canAlsoBeNodee(draft)
+                          ? "Your fellow or grantee role comes from your invite. You can also be a nodee."
+                          : "Set by your invite or by Foresight. It can’t be changed here."
                     }
                   >
                     <p className="flex h-11 items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800">
-                      {lockedPrimaryRole(draft)}
+                      {profileRoleLabel(draft)}
                     </p>
                     {canAlsoBeNodee(draft) ? (
                       <label className="mt-2 flex cursor-pointer items-start gap-2 text-sm text-gray-700">
@@ -1187,23 +1190,6 @@ export function ProfilePage({
                     Your profile is on the wider Foresight community atlas as well as this one.
                     Private above still hides you from both.
                   </p>
-                ) : null}
-                {draft.roleType !== "Community" && draft.roleType !== "Foresight Team" ? (
-                  <Field
-                    label="Wider community"
-                    description="Off by default. Turn this on to show your profile to Foresight community accounts. Node memory stays internal."
-                  >
-                    <Select
-                      value={draft.visibleToCommunity ? "community" : "internal"}
-                      onValueChange={(value) => updateDraft("visibleToCommunity", value === "community")}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="internal">Internal atlas only</SelectItem>
-                        <SelectItem value="community">Also visible to the wider community</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
                 ) : null}
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <Button

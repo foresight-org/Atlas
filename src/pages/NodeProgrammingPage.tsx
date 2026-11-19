@@ -94,6 +94,8 @@ interface NodeProgrammingPageProps {
   onViewPersonDetails?: (personId: string, context: { peopleIds: string[]; label: string }) => void;
   /** When false, the page does not render its own header (global AppHeader is shown above). */
   showPageHeader?: boolean;
+  /** Community view is events and RSVP. The member table stays on the internal atlas. */
+  communityView?: boolean;
 }
 
 export function NodeProgrammingPage({
@@ -105,6 +107,7 @@ export function NodeProgrammingPage({
   onShowEventOnMap,
   onViewPersonDetails,
   showPageHeader = true,
+  communityView = false,
 }: NodeProgrammingPageProps) {
   const [activeNode, setActiveNode] = useState<NodeSlug>(initialNode);
   const [rsvpTick, setRsvpTick] = useState(0);
@@ -117,7 +120,8 @@ export function NodeProgrammingPage({
   const [connectionsTick, setConnectionsTick] = useState(0);
 
   const isGlobal = activeNode === "global";
-  const isPhysicalNode = (activeNode === "berlin" || activeNode === "sf") && ENABLE_CHECKIN_TABLE;
+  const isPhysicalNode =
+    (activeNode === "berlin" || activeNode === "sf") && ENABLE_CHECKIN_TABLE && !communityView;
 
   /* ── Tab state (URL param aware) ─────────────────────────────────── */
   const urlParams = useRef(readUrlParams());
@@ -135,17 +139,32 @@ export function NodeProgrammingPage({
   /* ── Data loading ────────────────────────────────────────────────── */
 
   useEffect(() => {
+    let gone = false;
     (async () => {
-      const buildRsvps = await getRsvps();
-      setAPIRsvpsFromBuild(buildRsvps);
-      await fetchRSVPsFromAPI();
-      setRsvpTick((t) => t + 1);
+      try {
+        const buildRsvps = await getRsvps();
+        if (gone) return;
+        setAPIRsvpsFromBuild(buildRsvps);
+        await fetchRSVPsFromAPI();
+        if (!gone) setRsvpTick((t) => t + 1);
+      } catch (err) {
+        console.warn("[atlas] RSVPs will retry on the next open", err);
+      }
     })();
-    loadEvents().then((ev) => {
-      setDynamicEvents(ev);
-      setEventsSheetError(getEventsSheetLoadError());
-      setEventsReady(true);
-    });
+    loadEvents()
+      .then((ev) => {
+        if (gone) return;
+        setDynamicEvents(ev);
+        setEventsSheetError(getEventsSheetLoadError());
+        setEventsReady(true);
+      })
+      .catch((err) => {
+        console.warn("[atlas] events will retry on the next open", err);
+        if (!gone) setEventsReady(true);
+      });
+    return () => {
+      gone = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -161,12 +180,12 @@ export function NodeProgrammingPage({
   );
 
   useEffect(() => {
-    if (isGlobal) return;
+    if (isGlobal || communityView) return;
     const weekDates = getWeekDates(new Date());
     void fetchCheckInsFromAPI(activeNode, weekDates[0], weekDates[6]).then(() =>
       setCheckInTick((t) => t + 1),
     );
-  }, [activeNode, isGlobal]);
+  }, [activeNode, isGlobal, communityView]);
 
   /*
    * Cross-tab / focus sync: when any tab publishes an RSVP or check-in change
@@ -178,9 +197,9 @@ export function NodeProgrammingPage({
   useEffect(() => {
     const onChange = (msg: DataChangeMessage) => {
       if (msg.scope === "rsvps" || msg.scope === "all") {
-        void fetchRSVPsFromAPI().then(() => setRsvpTick((t) => t + 1));
+        void fetchRSVPsFromAPI().then(() => setRsvpTick((t) => t + 1)).catch(() => {});
       }
-      if ((msg.scope === "checkins" || msg.scope === "all") && !isGlobal) {
+      if ((msg.scope === "checkins" || msg.scope === "all") && !isGlobal && !communityView) {
         const weekDates = getWeekDates(new Date());
         void fetchCheckInsFromAPI(activeNode, weekDates[0], weekDates[6]).then(() =>
           setCheckInTick((t) => t + 1),
@@ -200,7 +219,7 @@ export function NodeProgrammingPage({
       }
     };
     return subscribeToDataChanges(onChange);
-  }, [activeNode, isGlobal]);
+  }, [activeNode, isGlobal, communityView]);
 
   /* ── QR auto-check-in flow ───────────────────────────────────────── */
 

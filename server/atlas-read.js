@@ -40,7 +40,12 @@ async function readAtlasDatabase(scope) {
   });
 
   if (scope === "programming") {
+    // People stay on this payload so the community guest list can be cut to
+    // the team and community accounts. The layer map is what lets the handler
+    // tell a signed-in member from a stranger. Without it, Berlin 401s.
     return {
+      people: database.people,
+      _layer: database._layer,
       events: database.events,
       rsvps: database.rsvps,
     };
