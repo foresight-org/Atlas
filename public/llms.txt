@@ -1,0 +1,26 @@
+# Foresight Atlas
+
+> A private directory and programming calendar for the Foresight Institute. Agents may read only what the signed-in person can see. There is no public roster and no write API.
+
+Atlas is two layers. A community account sees community profiles, the team, fellows who opted in, and events. A fellow, grantee, prize winner, or nodee sees the inner atlas. Installing a connector does not cross that line.
+
+## Agents
+
+- [Foresight Atlas skill](https://atlas.foresight.org/agents/foresight-atlas/SKILL.md): how to connect, what you may ask, and what you must not do
+- MCP: https://atlas.foresight.org/api/assistant/mcp
+- Sign-in is OAuth in the browser. The agent never receives a password
+- Tools are read-only: my_profile, my_rsvps, my_subgraph, upcoming_events, open_to_meet, people_by_focus
+
+## People
+
+- [Atlas](https://atlas.foresight.org/): map, programming, and sign-in
+- [Foresight Institute](https://www.foresight.org/)
+- [Fellowship](https://foresight.org/engage/fellowship/)
+- [Grants](https://foresight.org/engage/grants/)
+
+## Boundaries
+
+- Do not scrape or republish the directory
+- Do not invent contact details
+- The only public intent is one sentence, "currently looking for," written by the person
+- Node memory stays on the inner atlas and is not in the connector

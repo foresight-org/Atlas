@@ -11,6 +11,7 @@ import { FocusTagsDisplay } from "../components/FocusTagsDisplay";
 import { CustomFocusInput } from "../components/CustomFocusInput";
 import { PersonContactLinks } from "../components/PersonContactLinks";
 import { AgentAccessNote } from "../components/community/AgentAccessNote";
+import { downloadPersonalGraph } from "../services/personalGraph";
 import { getPersonRSVPs } from "../services/rsvp";
 import { fetchRSVPsFromAPI } from "../services/rsvp";
 import { subscribeToDataChanges } from "../services/sync";
@@ -1388,8 +1389,15 @@ export function ProfilePage({
 
           {/* Bottom actions: Sign out and Save profile */}
           <div className="border-t border-gray-200 bg-gray-50/80 px-4 py-5 sm:px-8 lg:px-10">
-            <div className="mb-4">
+            <div className="mb-4 flex flex-col items-start gap-2">
               <AgentAccessNote />
+              <button
+                type="button"
+                onClick={() => downloadPersonalGraph(draft, getPersonRSVPs(draft.id))}
+                className="text-xs text-gray-500 underline-offset-2 hover:text-gray-700 hover:underline"
+              >
+                Download my graph
+              </button>
             </div>
             <div className="flex min-w-0 flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-4">
               <Button

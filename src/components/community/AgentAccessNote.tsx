@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { Check, ChevronDown, Copy } from "lucide-react";
 import { atlasConnectorUrl } from "../../services/agentHandoff";
+import { buildFullPath } from "../../utils/router";
 
 interface AgentAccessNoteProps {
   className?: string;
@@ -61,7 +62,10 @@ export function AgentAccessNote({ className }: AgentAccessNoteProps) {
           </div>
           <p className="text-[11px] text-gray-500">
             On Claude Team or Enterprise, an org owner has to add the connector first.
-            Updating your password disconnects assistants.
+            Updating your password disconnects assistants.{" "}
+            <a className="underline underline-offset-2" href={buildFullPath("/llms.txt")}>llms.txt</a>
+            {" · "}
+            <a className="underline underline-offset-2" href={buildFullPath("/agents/foresight-atlas/SKILL.md")}>Agent skill</a>
           </p>
         </div>
       ) : null}

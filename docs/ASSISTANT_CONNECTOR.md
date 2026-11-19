@@ -8,7 +8,9 @@ Installing the connector does **not** grant access.
 
 Claude and ChatGPT only learn where to send the person. The Atlas then requires the same sign-in as the website. A community account and a fellow account both sign in here, and each assistant sees only that account’s layer: community accounts never receive fellows, grantees, or nodees, and fellow accounts do not receive the community signup list. Every later request checks that the password is still the one the token was issued for. Changing the password on the profile disconnects every assistant.
 
-The tools are read-only and narrow: your profile, your RSVPs, upcoming events, people who published a booking link, and people in a focus area. There is no tool that dumps the roster. Roster emails are never included. Private profiles stay off shared lists. Senior Fellows and Prize Winners appear without contact fields.
+The tools are read-only and narrow: your profile, your RSVPs, your own JSON-LD graph (`my_subgraph`), upcoming events, people who published a booking link, and people in a focus area. There is no write tool and no tool that dumps the roster. Roster emails are never included. Private profiles stay off shared lists. Senior Fellows and Prize Winners appear without contact fields. The only public intent is the one-sentence “currently looking for” field.
+
+Agents can discover this at `https://atlas.foresight.org/llms.txt` and the playbook at `https://atlas.foresight.org/agents/foresight-atlas/SKILL.md`.
 
 ## Address
 

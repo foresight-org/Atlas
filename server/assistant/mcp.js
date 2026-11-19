@@ -6,6 +6,7 @@
  */
 
 const { publicCard, bookingUrl } = require("./directory");
+const { personalGraph } = require("./personal-graph");
 const { isCommunityPerson } = require("../role-types");
 const { sharesCommunityAtlas } = require("../directory-layer");
 
@@ -72,6 +73,12 @@ const TOOLS = [
     "my_rsvps",
     "My RSVPs",
     "Events the signed-in member marked going or interested.",
+    {},
+  ),
+  tool(
+    "my_subgraph",
+    "My graph",
+    "JSON-LD of the signed-in member only: name, focus, the one-sentence intent, and their own RSVPs. For their knowledge graph. No one else's data.",
     {},
   ),
   tool(
@@ -176,6 +183,11 @@ function callTool(name, args, member, community) {
       you: publicCard(member.person),
       hiddenFromDirectory: member.person.isPrivate === true,
     });
+  }
+  if (name === "my_subgraph") {
+    const eventsById = new Map((community.events || []).map((event) => [event.id, event]));
+    const mine = latestRsvps(community.rsvps).filter((row) => row.personId === member.person.id);
+    return asText(personalGraph(member.person, mine, eventsById));
   }
   if (name === "my_rsvps") {
     const eventsById = new Map((community.events || []).map((event) => [event.id, event]));
