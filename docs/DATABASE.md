@@ -43,9 +43,16 @@ cron calls `GET /api/polls?ping=1` to keep it awake.
   and its final minute hasn't run out, checked in the same statement.
 - **node_memory_bundles**: one row per Node session. Meld posts a graph
   (topics, problems, embers, edges, insights). Sending the same session again
-  replaces the row. The recording is not a column. Without Postgres, the same
-  rows sit in `mock/node-memory.local.json` so a Node can run the API offline.
+  replaces the row. The recording is not a column, and a transcript is used
+  once to derive a graph and then dropped. Assistants read the assembled
+  graph, not the row. Without Postgres, the same rows sit in
+  `mock/node-memory.local.json` so a Node can run the API offline.
   See `docs/MELD.md`.
+
+A year of sessions fits this table: each row is one session's graph, and a
+read assembles the place. People, events, and sign-in stay on the Sheet.
+Split topics and insights into their own tables when a single place's graph
+is too large to assemble on one request.
 
 Row level security is on with no policies. The public Supabase keys can't read
 the tables; the API connects as the owner.

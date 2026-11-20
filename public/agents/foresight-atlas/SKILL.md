@@ -1,6 +1,6 @@
 ---
 name: foresight-atlas
-description: The signed-in person's Foresight Atlas layer. Use for their profile, one-sentence intent, RSVPs, upcoming programming, people open to meet, and a personal graph export. The only write is their own profile. Never dumps the roster, never contacts anyone.
+description: The signed-in person's Foresight Atlas layer. Use for their profile, one-sentence intent, RSVPs, upcoming programming, people open to meet, a node's published memory, and a personal graph export. The only write is their own profile. Never dumps the roster, never contacts anyone.
 ---
 
 # Foresight Atlas
@@ -26,6 +26,7 @@ Call only these tools. Lists are the people that member would see in the Atlas.
 - `upcoming_events` — programming that has not ended. `node` is `berlin`, `sf`, `global`, or `all`
 - `open_to_meet` — people on their layer who published a booking link
 - `people_by_focus` — people on their layer. Requires a focus string of at least two characters
+- `node_memory` — published graph for `berlin`, `sf`, or `cape-town`: hard problems, topics, insights, conversation labels. Fellows and grantees only. Empty when nothing has been published. The globe's sample graph is not included. Recordings and transcripts are not stored.
 
 A community account receives community profiles and the team. It does not receive fellows, grantees, prize winners, or nodees. A fellow account does not receive the community account list. Community accounts are invite-only, sent after an event. Changing the Atlas password disconnects every assistant.
 

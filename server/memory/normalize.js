@@ -37,6 +37,10 @@ function blurb(value) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, 280);
 }
 
+function passage(value) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, 800);
+}
+
 function asList(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -117,7 +121,9 @@ function normalizeBundle(body, derived) {
       if (!INSIGHT_TYPES.has(type)) return null;
       const title = labelOf(raw.title || raw.label, "");
       if (!title) return null;
-      const insight = { type, title, body: "" };
+      const insight = { type, title };
+      const body = passage(raw.body || raw.summary || raw.text);
+      if (body) insight.body = body;
       if (type === "bridge" && raw.toNode) insight.toNode = slug(raw.toNode, "");
       if (type === "intro" && raw.name) {
         insight.recommendation = {

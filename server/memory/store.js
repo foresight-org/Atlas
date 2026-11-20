@@ -30,6 +30,10 @@ function writeFile(bundles) {
   fs.renameSync(tmp, FILE);
 }
 
+function useFile() {
+  return String(process.env.FORESIGHT_FORCE_MOCK || "") === "1" || !hasRestApi();
+}
+
 async function saveBundle(bundle) {
   const row = {
     id: bundle.id,
@@ -42,7 +46,7 @@ async function saveBundle(bundle) {
     updated_at: new Date().toISOString(),
   };
 
-  if (hasRestApi()) {
+  if (!useFile()) {
     try {
       await rest("node_memory_bundles?on_conflict=id", {
         method: "POST",
@@ -67,7 +71,7 @@ async function saveBundle(bundle) {
 }
 
 async function bundlesFor(placeId) {
-  if (hasRestApi()) {
+  if (!useFile()) {
     try {
       const rows = await rest(
         `node_memory_bundles?place_id=eq.${encodeURIComponent(placeId)}&select=payload&order=updated_at.asc`,

@@ -24,6 +24,8 @@ const http = require("http");
 const { issueDirectorySession, hashPassword } = require("../server/directory-auth");
 const { AUTH_FILE, DATABASE_FILE, getLocalAuth } = require("../server/local-storage");
 const { callTool } = require("../server/assistant/mcp");
+const { normalizeBundle } = require("../server/memory/normalize");
+const { saveBundle, FILE: MEMORY_FILE } = require("../server/memory/store");
 const { isAllowedRedirectUri } = require("../server/assistant/oauth");
 
 function assert(condition, message) {
@@ -78,6 +80,7 @@ async function main() {
 
   const authBefore = JSON.stringify(await getLocalAuth());
   const databaseBefore = fs.readFileSync(DATABASE_FILE, "utf8");
+  const memoryBefore = fs.existsSync(MEMORY_FILE) ? fs.readFileSync(MEMORY_FILE, "utf8") : null;
   const { server, base } = await startMockServer();
   try {
     const anon = await req(base, "POST", "/api/assistant/mcp", {
@@ -264,7 +267,7 @@ async function main() {
     });
     assert(tools.status === 200, "member should be able to list tools");
     const names = tools.body.result.tools.map((entry) => entry.name);
-    assert(names.includes("open_to_meet") && names.includes("people_by_focus"), "expected directory tools");
+    assert(names.includes("open_to_meet") && names.includes("people_by_focus") && names.includes("node_memory"), "expected directory tools");
     assert(names.includes("update_my_profile"), "a member should be able to update their own profile");
     const updateTool = tools.body.result.tools.find((entry) => entry.name === "update_my_profile");
     assert(updateTool.annotations.readOnlyHint === false, "profile update is a write");
@@ -360,10 +363,27 @@ async function main() {
     assert(fellowView.includes("Fellow Example") && fellowView.includes("Team Example") && !fellowView.includes("Community Example"), "a fellow sees the program layer");
     assert(communityView.includes("Community Example") && communityView.includes("Team Example") && !communityView.includes("Fellow Example"), "a community account sees who is open to meet on their layer");
 
+    const bundle = normalizeBundle({
+      place: "berlin",
+      source: "meld",
+      session: { id: "assistant-test", label: "Thursday room", at: "2026-11-01" },
+      problems: [{ label: "Local compute", summary: "People are trying to keep models on the node." }],
+      insights: [{ type: "emerging_term", title: "Node compute", body: "The room kept returning to machines that stay in the building." }],
+    });
+    const stored = await saveBundle(bundle);
+    assert(stored.where === "file", "the assistant test must not write node memory to Postgres");
+    const fellowMemory = JSON.stringify(await callTool("node_memory", { place: "berlin" }, { person: { id: "fellow", roleType: "Fellow" } }, { publicPeople: [], events: [], rsvps: [] }));
+    assert(fellowMemory.includes("Local compute") && fellowMemory.includes("machines that stay in the building"), "a fellow reads published node memory");
+    assert(!fellowMemory.includes("Prototype"), "the sample graph is not served to an assistant");
+    const communityMemory = await callTool("node_memory", { place: "berlin" }, { person: { id: "community", roleType: "Community" } }, { publicPeople: [], events: [], rsvps: [] });
+    assert(communityMemory.isError && !JSON.stringify(communityMemory).includes("Local compute"), "a community account does not read node memory");
+
     console.log("assistant connector: members-only checks passed");
   } finally {
     fs.writeFileSync(AUTH_FILE, authBefore.endsWith("\n") ? authBefore : `${authBefore}\n`);
     fs.writeFileSync(DATABASE_FILE, databaseBefore.endsWith("\n") ? databaseBefore : `${databaseBefore}\n`);
+    if (memoryBefore == null) fs.rmSync(MEMORY_FILE, { force: true });
+    else fs.writeFileSync(MEMORY_FILE, memoryBefore);
     await new Promise((resolve) => server.close(resolve));
   }
 }

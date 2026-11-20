@@ -8,13 +8,14 @@
 
 const { publicCard, bookingUrl } = require("./directory");
 const { personalGraph } = require("./personal-graph");
+const { readNodeMemory } = require("./node-memory");
 const { isCommunityPerson } = require("../role-types");
 const { sharesCommunityAtlas } = require("../directory-layer");
 
 /**
  * The assistant sees the same layer as the website. A community account
  * sees community profiles, the team, and programming.
- * Node memory is not in this snapshot.
+ * Node memory is read separately, and only for the fellow and grantee network.
  */
 function scopedCommunity(member, community) {
   const outer = isCommunityPerson(member?.person);
@@ -111,6 +112,15 @@ const TOOLS = [
       limit: { type: "integer", minimum: 1, maximum: 40 },
     },
     ["focus"],
+  ),
+  tool(
+    "node_memory",
+    "Node memory",
+    "Published knowledge-graph memory for a Foresight node: hard problems, topics, insights, and the conversations they came from. berlin, sf, or cape-town. Fellows and grantees only. The sample graph on the globe is not included. Recordings and transcripts are not stored. This does not write.",
+    {
+      place: { type: "string", enum: ["berlin", "sf", "cape-town"] },
+    },
+    ["place"],
   ),
   tool(
     "update_my_profile",
@@ -293,6 +303,16 @@ async function callTool(name, args, member, community) {
       .slice(0, limit)
       .map(publicCard);
     return asText({ focus: String(input.focus).trim(), people });
+  }
+  if (name === "node_memory") {
+    if (isCommunityPerson(member?.person)) {
+      return asError("Node memory belongs to the fellow and grantee network.");
+    }
+    try {
+      return asText(await readNodeMemory(input.place));
+    } catch (error) {
+      return asError(error instanceof Error ? error.message : "Node memory could not be read.");
+    }
   }
   if (name === "update_my_profile") {
     const patch = profilePatch(input);
