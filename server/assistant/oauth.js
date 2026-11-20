@@ -130,7 +130,9 @@ function isAllowedRedirectUri(uri) {
 }
 
 function pkceOk(value) {
-  return typeof value === "string" && /^[A-Za-z0-9_-]{43,128}$/.test(value);
+  // RFC 7636 unreserved set. The MCP client Hermes uses draws the verifier
+  // from this whole alphabet, including "." and "~".
+  return typeof value === "string" && /^[A-Za-z0-9\-._~]{43,128}$/.test(value);
 }
 
 function parseScope(scope) {
@@ -375,7 +377,13 @@ async function exchangeToken(body, origin) {
     }
     if (code.aud !== mcpResource(origin)) throw oauthError(400, "invalid_grant", "This sign-in code is for a different server.");
     const verifier = String(body?.code_verifier || "");
-    if (!pkceOk(verifier)) throw oauthError(400, "invalid_grant", "Missing PKCE verifier.");
+    if (!pkceOk(verifier)) {
+      throw oauthError(
+        400,
+        "invalid_grant",
+        verifier ? "PKCE verifier was rejected." : "Missing PKCE verifier.",
+      );
+    }
     const hashed = crypto.createHash("sha256").update(verifier).digest("base64url");
     const left = Buffer.from(hashed);
     const right = Buffer.from(code.challenge || "");

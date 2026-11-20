@@ -65,7 +65,7 @@ async function req(base, method, path, { token, json, form } = {}) {
 }
 
 function pkce() {
-  const verifier = crypto.randomBytes(32).toString("base64url");
+  const verifier = `~.${crypto.randomBytes(48).toString("base64url")}`.slice(0, 128);
   const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
   return { verifier, challenge };
 }
