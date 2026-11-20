@@ -23,6 +23,8 @@ interface LocationSetupPromptProps {
   onCountryChange: (value: string) => void;
   locationCheck: LocationCheckState;
   onDismiss: () => void;
+  /** Fired when focus leaves the card, so a found pin can retire it. */
+  onLeave?: () => void;
 }
 
 export function LocationSetupPrompt({
@@ -33,6 +35,7 @@ export function LocationSetupPrompt({
   onCountryChange,
   locationCheck,
   onDismiss,
+  onLeave,
 }: LocationSetupPromptProps) {
   const cityRef = useRef<HTMLInputElement>(null);
 
@@ -50,6 +53,11 @@ export function LocationSetupPrompt({
     <section
       className="scroll-mt-4 overflow-anchor-none overflow-hidden rounded-[1.75rem] border-2 border-sky-300 bg-gradient-to-br from-sky-50 via-white to-emerald-50 shadow-lg shadow-sky-100/60"
       aria-labelledby="location-setup-title"
+      onBlur={(event) => {
+        const next = event.relatedTarget;
+        if (next instanceof Node && event.currentTarget.contains(next)) return;
+        onLeave?.();
+      }}
     >
       <div className="border-b border-sky-200/80 bg-white/60 px-5 py-5 sm:px-7 sm:py-6">
         <div className="flex items-start gap-4">

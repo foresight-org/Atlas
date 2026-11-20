@@ -809,6 +809,7 @@ export default function App() {
       identity={identity}
       people={people}
       person={signedInPerson}
+      resolving={Boolean(identity) && isLoading && !signedInPerson}
       createMode={false}
       onNavigateHome={() => navigate("/")}
       onSignOut={handleIdentityClear}

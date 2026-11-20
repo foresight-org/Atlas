@@ -136,6 +136,8 @@ interface ProfilePageProps {
   identity: Identity | null;
   people: Person[];
   person: Person | null;
+  /** True while the signed-in record is still on its way. Avoids an error flash. */
+  resolving?: boolean;
   createMode: boolean;
   onNavigateHome: () => void;
   onSignOut: () => void;
@@ -217,6 +219,7 @@ export function ProfilePage({
   identity,
   people,
   person,
+  resolving = false,
   createMode,
   onNavigateHome,
   onSignOut,
@@ -314,6 +317,17 @@ export function ProfilePage({
     clearLocationSetupUrl();
     clearLocationSetupDismissed();
     setLocationSetupHidden(true);
+  };
+
+  const settleLocationCard = () => {
+    const saved = personRef.current;
+    if (
+      saved &&
+      profileText(saved.currentCity).length >= 3 &&
+      hasPlacedPin(saved.currentCoordinates)
+    ) {
+      finishLocationSetup();
+    }
   };
 
   useEffect(() => {
@@ -477,7 +491,11 @@ export function ProfilePage({
     const city = draft.currentCity.trim();
     const country = draft.currentCountry.trim();
 
-    if (!city) {
+    /*
+     * A single letter can geocode to a real village. Wait until the city
+     * looks like a place name before we look it up or write it.
+     */
+    if (city.length < 3) {
       setLocationCheck({ status: "idle", message: "" });
       return;
     }
@@ -526,10 +544,14 @@ export function ProfilePage({
         );
       }
       if (already || !session || session.mustChangePassword) {
-        setLocationCheck({
-          status: "success",
-          message: `Pin found near ${resolvedLabel}.`,
-        });
+        setLocationCheck((current) =>
+          current.message.includes("Your profile is updated.")
+            ? current
+            : {
+                status: "success",
+                message: `Pin found near ${resolvedLabel}.`,
+              },
+        );
         return;
       }
       setLocationCheck({ status: "success", message: "Pin found. Saving…" });
@@ -775,6 +797,13 @@ export function ProfilePage({
   }
 
   if (!draft) {
+    if (resolving) {
+      return (
+        <ProfilePageShell maxWidth="max-w-3xl">
+          <p className="px-2 py-16 text-center text-sm text-gray-500">Loading your profile…</p>
+        </ProfilePageShell>
+      );
+    }
     return (
       <ProfilePageShell maxWidth="max-w-3xl">
           <button
@@ -941,10 +970,15 @@ export function ProfilePage({
       const live = draftRef.current;
       const pinLanded =
         options?.quiet === "pin" &&
-        profileText(pinFields?.currentCity).length > 0 &&
+        profileText(pinFields?.currentCity).length >= 3 &&
+        hasPlacedPin(result.person.currentCoordinates) &&
         live != null &&
         profileText(live.currentCity) === profileText(pinFields?.currentCity);
-      if (pinLanded || (!options?.quiet && result.person.currentCity?.trim())) {
+      const active = document.activeElement;
+      const stillEditingLocation =
+        active instanceof HTMLElement &&
+        Boolean(active.closest("[aria-labelledby='location-setup-title']"));
+      if ((pinLanded && !stillEditingLocation) || (!options?.quiet && result.person.currentCity?.trim())) {
         finishLocationSetup();
       }
       if (options?.quiet === "pin") {
@@ -1052,6 +1086,7 @@ export function ProfilePage({
             onCountryChange={(value) => updateDraft("currentCountry", value)}
             locationCheck={locationCheck}
             onDismiss={handleDismissLocationSetup}
+            onLeave={settleLocationCard}
           />
         ) : null}
 
