@@ -95,6 +95,28 @@ async function main() {
     assert(metadata.body.registration_endpoint.endsWith("/api/assistant/register"), "missing registration endpoint");
     assert(metadata.body.authorization_response_iss_parameter_supported === true, "issuer identification should be on");
 
+    const hermesClient = "https://nousresearch.github.io/hermes-agent/docs/oauth/client-metadata.json";
+    const hermesPkce = pkce();
+    const hermesQuery = new URLSearchParams({
+      response_type: "code",
+      client_id: hermesClient,
+      redirect_uri: "http://127.0.0.1:54321/callback",
+      code_challenge: hermesPkce.challenge,
+      code_challenge_method: "S256",
+      state: "hermes-desktop-port",
+      scope: "atlas:read",
+      resource: `${base}/api/assistant/mcp`,
+    });
+    const hermesAuth = await req(base, "GET", `/api/assistant/authorize?${hermesQuery}`);
+    assert(
+      hermesAuth.status === 302,
+      `Hermes may listen on a free loopback port, got ${hermesAuth.status} ${hermesAuth.text}`,
+    );
+    const unknownQuery = new URLSearchParams(hermesQuery);
+    unknownQuery.set("client_id", "https://evil.example/oauth/client.json");
+    const unknownClient = await req(base, "GET", `/api/assistant/authorize?${unknownQuery}`);
+    assert(unknownClient.status === 400, "an unknown client document must be refused");
+
     const evil = await req(base, "POST", "/api/assistant/register", {
       json: { redirect_uris: ["https://evil.example/steal"], token_endpoint_auth_method: "none" },
     });

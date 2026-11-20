@@ -27,7 +27,15 @@ const CLAUDE_CALLBACKS = new Set([
   "https://claude.com/api/mcp/auth_callback",
 ]);
 const CHATGPT_STABLE = "https://chatgpt.com/connector_platform_oauth_redirect";
-const CIMD_HOSTS = new Set(["claude.ai", "www.claude.ai", "claude.com", "www.claude.com", "chatgpt.com", "www.chatgpt.com"]);
+const CIMD_HOSTS = new Set([
+  "claude.ai",
+  "www.claude.ai",
+  "claude.com",
+  "www.claude.com",
+  "chatgpt.com",
+  "www.chatgpt.com",
+  "nousresearch.github.io",
+]);
 
 const redeemedCodes = new Map();
 const cimdCache = new Map();
@@ -219,12 +227,33 @@ async function resolveClient(clientId) {
   return clientFromDcr(clientId);
 }
 
+function loopbackCallback(uri) {
+  let url;
+  try {
+    url = new URL(uri);
+  } catch {
+    return false;
+  }
+  return (
+    url.protocol === "http:" &&
+    (url.hostname === "localhost" || url.hostname === "127.0.0.1") &&
+    url.pathname === "/callback" &&
+    !url.search
+  );
+}
+
 async function assertClientRedirect(clientId, redirectUri) {
   if (!isAllowedRedirectUri(redirectUri)) {
     throw oauthError(400, "invalid_request", "That assistant is not allowed to receive a sign-in code.");
   }
   const client = await resolveClient(clientId);
-  if (!client || !client.redirectUris.includes(redirectUri)) {
+  // Hermes Desktop keeps the public client document and then listens on
+  // whichever loopback port is free. The code is still bound by PKCE.
+  const sameLoopback =
+    String(clientId).startsWith("https://") &&
+    loopbackCallback(redirectUri) &&
+    client?.redirectUris.some(loopbackCallback);
+  if (!client || (!client.redirectUris.includes(redirectUri) && !sameLoopback)) {
     throw oauthError(400, "invalid_client", "That assistant is not registered for this connection.");
   }
   return client;
