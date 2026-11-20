@@ -28,9 +28,9 @@ export function PrivacyConsentNote({
         className="mt-0.5 size-4 shrink-0 rounded border-gray-300 text-teal-700 focus:ring-teal-500/40"
       />
       <span>
-        By creating an account, I agree my profile can appear to signed-in
-        Foresight community members on this atlas. We don’t sell your data or
-        share it outside this community.{" "}
+        By creating an account, I agree my profile can appear to other
+        signed-in members on this atlas. We don’t sell your data or share it
+        outside this community.{" "}
         <a
           href={buildFullPath("/privacy")}
           target="_blank"

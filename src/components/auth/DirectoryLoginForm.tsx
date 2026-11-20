@@ -21,7 +21,7 @@ interface DirectoryLoginFormProps {
 export function DirectoryLoginForm({
   title,
   description,
-  submitLabel = "Email me a sign-in link",
+  submitLabel = "Email me my sign-in link",
   onCancel,
   initialName,
 }: DirectoryLoginFormProps) {
@@ -105,18 +105,18 @@ export function DirectoryLoginForm({
         </div>
       ) : null}
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        {onCancel ? (
-          <Button type="button" variant="outline" onClick={onCancel} className="min-h-[44px]">
-            Cancel
-          </Button>
-        ) : null}
+      <div className="flex flex-col gap-3">
         {sent ? null : (
-          <Button type="submit" disabled={isSubmitting} className="min-h-[44px] px-5">
+          <Button type="submit" disabled={isSubmitting} className="min-h-[44px] w-full px-5">
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
             {submitLabel}
           </Button>
         )}
+        {onCancel ? (
+          <Button type="button" variant="outline" onClick={onCancel} className="min-h-[44px] w-full">
+            Cancel
+          </Button>
+        ) : null}
       </div>
     </form>
   );

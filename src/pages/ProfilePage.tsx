@@ -1156,7 +1156,7 @@ export function ProfilePage({
 
               <ProfileSection
                 title="Privacy"
-                description="You stay signed in either way. Hidden just means your pin and directory card are off the public atlas."
+                description="You stay signed in either way. Hidden just means your pin and directory card are off the atlas."
                 icon={<EyeOff className="size-4 text-sky-500" />}
               >
                 <Field

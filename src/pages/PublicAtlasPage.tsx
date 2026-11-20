@@ -383,7 +383,7 @@ export function PublicAtlasPage({ onOpenPrivacy }: PublicAtlasPageProps) {
             >
               <X className="size-5" />
             </button>
-            <div className="mb-5 flex flex-col items-center text-center pr-6">
+            <div className="mb-5 flex flex-col items-center text-center">
               <img src={foresightIcon} alt="" className="size-10 object-contain" />
               <h2 className="mt-3 text-xl font-semibold tracking-tight text-gray-900">
                 Sign in

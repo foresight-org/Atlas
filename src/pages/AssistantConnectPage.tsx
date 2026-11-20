@@ -165,7 +165,7 @@ export function AssistantConnectPage({ identity }: AssistantConnectPageProps) {
           <DirectoryLoginForm
             title="Sign in to connect"
             description={`${assistantHost(request.redirectUri)} is asking to read the Atlas as you. We'll email a sign-in link. The assistant can only see the layer that account already sees.`}
-            submitLabel="Email me a sign-in link"
+            submitLabel="Email me my sign-in link"
             initialName={getLastSignedInName()}
           />
         ) : (

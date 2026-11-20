@@ -16,7 +16,7 @@ const PAGE_BG =
   "linear-gradient(180deg, #f7f6f3 0%, #ffffff 42%, #f3f1ec 100%)";
 
 /** Bump when the notice changes in a material way. */
-const LAST_UPDATED = "23 October 2026";
+const LAST_UPDATED = "19 November 2026";
 
 const CONTROLLER_ADDRESS =
   "50 California Street, Suite 1500, San Francisco, CA 94111";
@@ -112,24 +112,30 @@ export function PrivacyPage({ onNavigateHome }: PrivacyPageProps) {
             <p>
               Profile fields you add or edit (name, role, location, bio, photo
               link, contact links, and so on), plus RSVPs, check-ins, travel
-              windows, and private connection bookmarks. Passwords are hashed —
-              never stored in plain text. Roster email stays off the public map.
+              windows, and private connection bookmarks. Sign-in is a link we
+              email to the address on your account. If you set a password, we
+              store only a hash. Email addresses stay off the public map.
             </p>
           </Section>
 
           <Section title="Who can see it">
             <p>
-              Signed-in community members. You can set your profile to Private
-              anytime to hide your pin and directory card. Connection bookmarks
-              are only yours. Staff who run the atlas can access the roster
-              sheet as needed to keep the tool working.
+              People signed in on the same atlas you are. Community accounts
+              see other community accounts and Foresight Team. Fellows,
+              grantees, nodees, and prize winners stay on the internal atlas.
+              The signed-out globe shows how many people are in a city, not
+              names. You can set your profile to Private anytime to hide your
+              pin and directory card. Connection bookmarks are only yours.
+              Staff who run the atlas can access the roster sheet as needed to
+              keep the tool working.
             </p>
           </Section>
 
           <Section title="Where it lives">
             <p>
-              A private Google Sheet and the Atlas app on Vercel. Optional
-              access emails (if enabled) may use Resend. Your browser keeps a
+              A private Google Sheet and the Atlas app on Vercel. Sign-in and
+              invite emails go through Resend. Vercel counts page views.
+              Polls, when we run one, live in Supabase. Your browser keeps a
               local session until you sign out. Foresight is international; our
               processors may handle data in the US under their GDPR terms.
             </p>
