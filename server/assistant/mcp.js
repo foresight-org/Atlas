@@ -1,8 +1,9 @@
 "use strict";
 
 /**
- * Read-only tools the member's own assistant may call.
- * There is no "list the whole roster" tool and no write tool.
+ * Tools the member's own assistant may call.
+ * Lists are the same people that member would see in the Atlas.
+ * The one write is update_my_profile, and it can only touch their own card.
  */
 
 const { publicCard, bookingUrl } = require("./directory");
@@ -41,7 +42,7 @@ const NODE_NAMES = {
   global: "Global",
 };
 
-function tool(name, title, description, properties, required = []) {
+function tool(name, title, description, properties, required = [], { readOnly = true } = {}) {
   return {
     name,
     title,
@@ -54,9 +55,9 @@ function tool(name, title, description, properties, required = []) {
     },
     annotations: {
       title,
-      readOnlyHint: true,
+      readOnlyHint: readOnly,
       destructiveHint: false,
-      idempotentHint: true,
+      idempotentHint: readOnly,
       openWorldHint: false,
     },
   };
@@ -93,7 +94,7 @@ const TOOLS = [
   tool(
     "open_to_meet",
     "Who is open to meet",
-    "Members who published a booking link. Optionally filter by node (berlin, sf, global) and a focus area.",
+    "People this member would see in the Atlas who published a booking link. Optionally filter by node (berlin, sf, global) and a focus area.",
     {
       node: { type: "string" },
       focus: { type: "string" },
@@ -103,7 +104,7 @@ const TOOLS = [
   tool(
     "people_by_focus",
     "People in a focus area",
-    "Members whose focus tags match a topic, such as biosecurity or neurotechnology. Requires a focus string.",
+    "People this member would see in the Atlas whose focus tags match a topic, such as biosecurity or neurotechnology. Requires a focus string.",
     {
       focus: { type: "string" },
       node: { type: "string" },
@@ -111,7 +112,61 @@ const TOOLS = [
     },
     ["focus"],
   ),
+  tool(
+    "update_my_profile",
+    "Update my profile",
+    "Update the signed-in member's own profile. Send only the fields that should change. Roles, email, and the password stay as they are. Focus tags are the six Atlas areas.",
+    {
+      fullName: { type: "string" },
+      tagline: { type: "string" },
+      about: { type: "string" },
+      lookingFor: { type: "string" },
+      city: { type: "string" },
+      country: { type: "string" },
+      contact: { type: "string" },
+      bookingUrl: { type: "string" },
+      profileUrl: { type: "string" },
+      primaryNode: { type: "string", enum: ["Berlin Node", "Bay Area Node", "Global"] },
+      isPrivate: { type: "boolean" },
+      focus: { type: "array", items: { type: "string" } },
+    },
+    [],
+    { readOnly: false },
+  ),
 ];
+
+const PROFILE_FIELDS = {
+  fullName: "fullName",
+  tagline: "shortProjectTagline",
+  about: "expandedProjectDescription",
+  lookingFor: "currentlyLookingFor",
+  city: "currentCity",
+  country: "currentCountry",
+  contact: "contactUrlOrHandle",
+  bookingUrl: "availabilityUrl",
+  profileUrl: "profileUrl",
+  primaryNode: "primaryNode",
+  isPrivate: "isPrivate",
+  focus: "focusTags",
+};
+
+function profilePatch(input) {
+  const patch = {};
+  for (const [key, field] of Object.entries(PROFILE_FIELDS)) {
+    if (input[key] !== undefined) patch[field] = input[key];
+  }
+  return patch;
+}
+
+async function saveOwnProfile(person, member) {
+  const session = { personId: member.person.id, mustChangePassword: false };
+  if (String(process.env.FORESIGHT_FORCE_MOCK || "") === "1") {
+    const { saveLocalProfile } = require("../local-storage");
+    return saveLocalProfile(person, session);
+  }
+  const { saveProfile } = require("../profile-store");
+  return saveProfile(person, session);
+}
 
 function asText(data) {
   return {
@@ -175,7 +230,7 @@ function eventCard(event) {
   };
 }
 
-function callTool(name, args, member, community) {
+async function callTool(name, args, member, community) {
   community = scopedCommunity(member, community);
   const input = args && typeof args === "object" ? args : {};
   if (name === "my_profile") {
@@ -238,6 +293,22 @@ function callTool(name, args, member, community) {
       .slice(0, limit)
       .map(publicCard);
     return asText({ focus: String(input.focus).trim(), people });
+  }
+  if (name === "update_my_profile") {
+    const patch = profilePatch(input);
+    if (!Object.keys(patch).length) {
+      return asError("Send at least one profile field to update.");
+    }
+    const next = { ...member.person, ...patch, id: member.person.id };
+    delete next.email;
+    delete next.otherEmails;
+    delete next.passwordHash;
+    try {
+      const saved = await saveOwnProfile(next, member);
+      return asText({ updated: true, you: publicCard(saved.person) });
+    } catch (error) {
+      return asError(error instanceof Error ? error.message : "The profile could not be updated.");
+    }
   }
   return null;
 }

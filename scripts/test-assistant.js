@@ -22,7 +22,8 @@ const crypto = require("crypto");
 const fs = require("fs");
 const http = require("http");
 const { issueDirectorySession, hashPassword } = require("../server/directory-auth");
-const { AUTH_FILE, getLocalAuth } = require("../server/local-storage");
+const { AUTH_FILE, DATABASE_FILE, getLocalAuth } = require("../server/local-storage");
+const { callTool } = require("../server/assistant/mcp");
 const { isAllowedRedirectUri } = require("../server/assistant/oauth");
 
 function assert(condition, message) {
@@ -71,10 +72,12 @@ function pkce() {
 
 async function main() {
   assert(isAllowedRedirectUri("https://claude.ai/api/mcp/auth_callback"), "claude callback should be allowed");
+  assert(isAllowedRedirectUri("http://127.0.0.1:8787/callback"), "Hermes loopback callback should be allowed");
   assert(!isAllowedRedirectUri("https://evil.example/callback"), "arbitrary redirects must be rejected");
   assert(!isAllowedRedirectUri("https://claude.ai.evil.example/api/mcp/auth_callback"), "lookalike hosts must be rejected");
 
   const authBefore = JSON.stringify(await getLocalAuth());
+  const databaseBefore = fs.readFileSync(DATABASE_FILE, "utf8");
   const { server, base } = await startMockServer();
   try {
     const anon = await req(base, "POST", "/api/assistant/mcp", {
@@ -239,8 +242,14 @@ async function main() {
     });
     assert(tools.status === 200, "member should be able to list tools");
     const names = tools.body.result.tools.map((entry) => entry.name);
-    assert(names.includes("open_to_meet") && names.includes("people_by_focus"), "expected read-only tools");
-    assert(tools.body.result.tools.every((entry) => entry.annotations.readOnlyHint === true), "tools must be marked read-only");
+    assert(names.includes("open_to_meet") && names.includes("people_by_focus"), "expected directory tools");
+    assert(names.includes("update_my_profile"), "a member should be able to update their own profile");
+    const updateTool = tools.body.result.tools.find((entry) => entry.name === "update_my_profile");
+    assert(updateTool.annotations.readOnlyHint === false, "profile update is a write");
+    assert(
+      tools.body.result.tools.filter((entry) => entry.name !== "update_my_profile").every((entry) => entry.annotations.readOnlyHint === true),
+      "the other tools stay read-only",
+    );
 
     const people = await req(base, "POST", "/api/assistant/mcp", {
       token: access,
@@ -267,6 +276,21 @@ async function main() {
     });
     assert(refreshed.status === 200, `refresh should succeed, got ${refreshed.status} ${refreshed.text}`);
 
+    const updated = await req(base, "POST", "/api/assistant/mcp", {
+      token: access,
+      json: {
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tools/call",
+        params: { name: "update_my_profile", arguments: { lookingFor: "A quiet test sentence." } },
+      },
+    });
+    assert(updated.status === 200, `profile update failed: ${updated.text}`);
+    const updatedText = JSON.stringify(updated.body);
+    assert(updatedText.includes("A quiet test sentence."), "the new sentence should come back");
+    assert(!updatedText.includes("alice@example.com"), "a profile update must not return the roster email");
+    assert(!updatedText.includes("\"Community\""), "a fellow profile update must not change their role");
+
     auth["mock-person-alice"].passwordHash = await hashPassword("a-different-password");
     fs.writeFileSync(AUTH_FILE, `${JSON.stringify(auth, null, 2)}\n`);
     const revoked = await req(base, "POST", "/api/assistant/token", {
@@ -279,9 +303,45 @@ async function main() {
     });
     assert(revoked.status === 401, "changing the password should disconnect the assistant");
 
+    auth["mock-person-bob"] = {
+      ...(auth["mock-person-bob"] || {}),
+      passwordHash: "",
+      claimedAt: "2026-01-01T00:00:00.000Z",
+      mustChangePassword: false,
+    };
+    fs.writeFileSync(AUTH_FILE, `${JSON.stringify(auth, null, 2)}\n`);
+    const bob = issueDirectorySession({
+      person: { id: "mock-person-bob", fullName: "Bob Example" },
+      auth: { mustChangePassword: false },
+    });
+    const bobConsent = await req(base, "POST", "/api/assistant/consent", {
+      token: bob.token,
+      json: {
+        action: "allow",
+        client_id: clientId,
+        redirect_uri: "https://claude.ai/api/mcp/auth_callback",
+        code_challenge: challenge,
+        code_challenge_method: "S256",
+        state: "bob-state",
+        resource: `${base}/api/assistant/mcp`,
+      },
+    });
+    assert(bobConsent.status === 200, `a claimed account without a password should connect, got ${bobConsent.status} ${bobConsent.text}`);
+
+    const layerPeople = [
+      { id: "fellow", fullName: "Fellow Example", roleType: "Fellow", focusTags: ["Biosecurity"], isPrivate: false },
+      { id: "team", fullName: "Team Example", roleType: "Foresight Team", focusTags: ["Biosecurity"], isPrivate: false, availabilityUrl: "https://cal.example/team" },
+      { id: "community", fullName: "Community Example", roleType: "Community", focusTags: ["Biosecurity"], isPrivate: false, availabilityUrl: "https://cal.example/community" },
+    ];
+    const fellowView = JSON.stringify(await callTool("people_by_focus", { focus: "Bio" }, { person: { id: "fellow", roleType: "Fellow" } }, { publicPeople: layerPeople, events: [], rsvps: [] }));
+    const communityView = JSON.stringify(await callTool("open_to_meet", {}, { person: { id: "community", roleType: "Community" } }, { publicPeople: layerPeople, events: [], rsvps: [] }));
+    assert(fellowView.includes("Fellow Example") && fellowView.includes("Team Example") && !fellowView.includes("Community Example"), "a fellow sees the program layer");
+    assert(communityView.includes("Community Example") && communityView.includes("Team Example") && !communityView.includes("Fellow Example"), "a community account sees who is open to meet on their layer");
+
     console.log("assistant connector: members-only checks passed");
   } finally {
     fs.writeFileSync(AUTH_FILE, authBefore.endsWith("\n") ? authBefore : `${authBefore}\n`);
+    fs.writeFileSync(DATABASE_FILE, databaseBefore.endsWith("\n") ? databaseBefore : `${databaseBefore}\n`);
     await new Promise((resolve) => server.close(resolve));
   }
 }

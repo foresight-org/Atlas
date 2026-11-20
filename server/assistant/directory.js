@@ -104,18 +104,30 @@ async function loadAuthRecord(personId) {
 }
 
 /**
+ * A claimed member may connect. A password, when they have one, is the
+ * fingerprint that disconnects the assistant if it changes. A magic-link
+ * account has no password yet, and that is enough once the row is claimed.
+ */
+function assistantMayConnect(record) {
+  if (!record?.person || record.auth?.mustChangePassword) return false;
+  const hash = String(record.auth?.passwordHash || "");
+  const claimed = Boolean(String(record.auth?.claimedAt || "").trim());
+  return Boolean(hash) || claimed;
+}
+
+/**
  * A claimed member whose password still matches the token we issued.
  * Password changes and unclaimed profiles both fail closed.
  */
 async function requireLiveMember(payload) {
   const record = await loadAuthRecord(payload.personId);
-  const hash = record?.auth?.passwordHash || "";
-  if (!record?.person || !hash || record.auth.mustChangePassword) {
+  if (!assistantMayConnect(record)) {
     const err = new Error("This assistant connection is no longer valid. Sign in again from the Atlas.");
     err.statusCode = 401;
     err.oauthError = "invalid_grant";
     throw err;
   }
+  const hash = record.auth?.passwordHash || "";
   if (passwordVersion(hash) !== payload.pwv) {
     const err = new Error("Your password changed, so this assistant was disconnected.");
     err.statusCode = 401;
@@ -131,5 +143,6 @@ module.exports = {
   loadCommunity,
   loadAuthRecord,
   requireLiveMember,
+  assistantMayConnect,
   bookingUrl,
 };

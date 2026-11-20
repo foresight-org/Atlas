@@ -1,6 +1,6 @@
 ---
 name: foresight-atlas
-description: Read the signed-in person's Foresight Atlas layer. Use for their profile, one-sentence intent, RSVPs, upcoming programming, people open to meet, and a personal graph export. Never writes, never dumps the roster, never contacts anyone.
+description: The signed-in person's Foresight Atlas layer. Use for their profile, one-sentence intent, RSVPs, upcoming programming, people open to meet, and a personal graph export. The only write is their own profile. Never dumps the roster, never contacts anyone.
 ---
 
 # Foresight Atlas
@@ -17,14 +17,15 @@ Hermes, Claude Code, and Cursor can add that URL directly. Claude Team and Enter
 
 ## What you can do
 
-Call only these tools. They are read-only and already limited to the signed-in layer.
+Call only these tools. Lists are the people that member would see in the Atlas.
 
 - `my_profile` — the person's own card, including `lookingFor`
+- `update_my_profile` — change that same card. Send only the fields that should change. Roles, email, and the password stay put.
 - `my_rsvps` — events they marked going or interested
 - `my_subgraph` — the same facts as JSON-LD, for their own knowledge graph
 - `upcoming_events` — programming that has not ended. `node` is `berlin`, `sf`, `global`, or `all`
-- `open_to_meet` — people who published a booking link
-- `people_by_focus` — requires a focus string of at least two characters
+- `open_to_meet` — people on their layer who published a booking link
+- `people_by_focus` — people on their layer. Requires a focus string of at least two characters
 
 A community account receives community profiles and the team. It does not receive fellows, grantees, prize winners, or nodees. A fellow account does not receive the community account list. Community accounts are invite-only, sent after an event. Changing the Atlas password disconnects every assistant.
 
