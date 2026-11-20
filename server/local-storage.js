@@ -1189,7 +1189,8 @@ async function redeemLocalSignIn(token) {
   }
   const auth = await getLocalAuth();
   const current = auth[person.id] || { passwordHash: "", claimedAt: "" };
-  if (!current.claimedAt) {
+  const firstClaim = !current.claimedAt;
+  if (firstClaim) {
     auth[person.id] = {
       ...current,
       passwordHash: current.passwordHash || "",
@@ -1204,6 +1205,7 @@ async function redeemLocalSignIn(token) {
       person,
       auth: { mustChangePassword: false },
     }),
+    firstClaim,
   };
 }
 

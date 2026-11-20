@@ -793,7 +793,8 @@ async function redeemSignInLink(token) {
   }
 
   const updated = cloneRecord(match);
-  const needsWrite = !updated.auth.claimedAt || updated.auth.mustChangePassword;
+  const firstClaim = !updated.auth.claimedAt;
+  const needsWrite = firstClaim || updated.auth.mustChangePassword;
   updated.auth.mustChangePassword = false;
   if (!updated.auth.claimedAt) updated.auth.claimedAt = new Date().toISOString();
   if (needsWrite) {
@@ -810,6 +811,7 @@ async function redeemSignInLink(token) {
   return {
     person: updated.person,
     auth: issueDirectorySession(sessionRecord),
+    firstClaim,
   };
 }
 

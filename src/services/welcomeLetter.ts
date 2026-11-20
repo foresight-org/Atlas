@@ -1,14 +1,13 @@
 /**
  * First-arrival letter.
  *
- * Armed once, for one person, when they enter the atlas: a first claim,
- * a join, a new profile, or a sign-in on this browser. Closing it is
- * remembered here, so it does not return on the next visit.
+ * Armed only when an account is claimed: a claim link, a join, a new
+ * profile, or the first magic-link open of an unclaimed row. A later
+ * sign-in does not arm it. Closing it is remembered on this browser.
  *
- * Someone who already has the atlas open when this ships is treated as a
- * returning member and is not interrupted. If the letter was armed and they
- * closed the tab before reading it, it is still waiting the next time they
- * open the atlas.
+ * The pending flag lives for this tab only. A returning member who already
+ * has the atlas open is not interrupted, and an old pending flag left in
+ * localStorage from a previous sign-in is dropped.
  */
 
 const SEEN_KEY = "foresightatlas_welcome_seen";
@@ -42,7 +41,13 @@ function markWelcomeSeen(personId: string): void {
 
 function readPending(): string | null {
   try {
-    const raw = localStorage.getItem(PENDING_KEY);
+    /* Older builds stored this across visits, so a sign-in reopened the letter. */
+    localStorage.removeItem(PENDING_KEY);
+  } catch {
+    // Private mode can refuse the write.
+  }
+  try {
+    const raw = sessionStorage.getItem(PENDING_KEY);
     return raw && raw.trim() ? raw : null;
   } catch {
     return null;
@@ -60,11 +65,11 @@ export function noteExistingSession(personId: string | null): void {
   markWelcomeSeen(personId);
 }
 
-/** Queue the letter for this person. No-ops once they have closed it. */
+/** Queue the letter for this claim. No-ops once they have closed it. */
 export function armWelcomeLetter(personId: string): void {
   if (!personId || hasSeenWelcome(personId)) return;
   try {
-    localStorage.setItem(PENDING_KEY, personId);
+    sessionStorage.setItem(PENDING_KEY, personId);
   } catch {
     // Private mode can refuse the write. The letter may not appear.
   }
@@ -78,7 +83,7 @@ export function welcomeLetterIsPending(personId: string): boolean {
 export function dismissWelcomeLetter(personId: string): void {
   if (personId) markWelcomeSeen(personId);
   try {
-    if (!personId || readPending() === personId) localStorage.removeItem(PENDING_KEY);
+    if (!personId || readPending() === personId) sessionStorage.removeItem(PENDING_KEY);
   } catch {
     // The seen flag is what keeps it closed.
   }

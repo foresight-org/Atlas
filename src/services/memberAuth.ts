@@ -9,6 +9,8 @@ export interface DirectoryAuthResult {
     expiresAt: string;
     mustChangePassword: boolean;
   };
+  /** True only when this magic link is the first time the row is claimed. */
+  firstClaim?: boolean;
 }
 
 export interface ClaimPeekResult {

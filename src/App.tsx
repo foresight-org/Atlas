@@ -538,7 +538,6 @@ export default function App() {
           mustChangePassword: result.auth.mustChangePassword,
         });
         setIdentityState(getIdentity());
-        armWelcomeLetter(result.person.id);
         // Remember our own record so a hidden profile remains editable.
         setSelfPerson(result.person);
 
@@ -575,7 +574,7 @@ export default function App() {
       });
       setIdentityState(getIdentity());
       setSelfPerson(result.person);
-      armWelcomeLetter(result.person.id);
+      if (result.firstClaim) armWelcomeLetter(result.person.id);
       const returnUrl = consumePostLoginReturnUrl();
       if (returnUrl) navigate(returnUrl);
       else if (personNeedsLocation(result.person)) navigate(profileLocationSetupPath());
