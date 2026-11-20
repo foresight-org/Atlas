@@ -814,7 +814,6 @@ export default function App() {
       onSignOut={handleIdentityClear}
       onProfileSaved={handleProfileSaved}
       onExitCreateMode={() => navigate("/profile")}
-      onAfterLocationSaved={() => navigate("/")}
       onRequestLocationSetup={() => navigate(profileLocationSetupPath())}
     />
   ) : isStatsRoute ? (

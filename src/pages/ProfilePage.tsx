@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, KeyRound, Loader2, Link2, LogOut, Save, Sparkles, User, CheckCircle, AlertCircle, CalendarDays, EyeOff, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Identity } from "../services/identity";
@@ -145,8 +145,6 @@ interface ProfilePageProps {
   ) => void;
   /** After creating a new profile, leave create mode (e.g. navigate to /profile). */
   onExitCreateMode: () => void;
-  /** After saving a first-time location, send the member to the map. */
-  onAfterLocationSaved?: () => void;
   /** When a new account is created without a city, open location setup. */
   onRequestLocationSetup?: () => void;
   /**
@@ -159,6 +157,47 @@ interface ProfilePageProps {
   backLabel?: string;
   /** When create hits an existing roster name, switch to the claim path. */
   onExistingName?: (fullName: string) => void;
+}
+
+function profileText(value: string | null | undefined): string {
+  return String(value ?? "").trim();
+}
+
+/** 0,0 is the sheet's empty pin, not a place in the Gulf of Guinea. */
+function hasPlacedPin(
+  coords: { lat: number; lng: number } | null | undefined,
+): boolean {
+  if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) return false;
+  return !(coords.lat === 0 && coords.lng === 0);
+}
+
+/** The fields the editor can change, in one comparable string. */
+function profileSignature(source: Person, presets: string[], custom: string): string {
+  const roleTypes = withNodeeChoice(source, getPersonRoleTypes(source).includes("Nodee"));
+  const coords = source.currentCoordinates;
+  return JSON.stringify({
+    fullName: profileText(source.fullName),
+    roleType: roleTypes[0] ?? "",
+    roleTypes,
+    cohort: source.fellowshipCohortYear ?? 0,
+    endYear: source.fellowshipEndYear ?? null,
+    affiliation: normalizeAffiliationInput(source.affiliationOrInstitution) ?? "",
+    primaryNode: source.primaryNode,
+    isAlumni: Boolean(source.isAlumni),
+    tagline: profileText(source.shortProjectTagline),
+    photo: profileText(source.profileImageUrl),
+    details: profileText(source.expandedProjectDescription),
+    looking: profileText(source.currentlyLookingFor),
+    city: profileText(source.currentCity),
+    country: profileText(source.currentCountry),
+    lat: coords ? Number(coords.lat.toFixed(5)) : null,
+    lng: coords ? Number(coords.lng.toFixed(5)) : null,
+    isPrivate: Boolean(source.isPrivate),
+    contact: profileText(source.contactUrlOrHandle),
+    profileUrl: profileText(source.profileUrl),
+    booking: profileText(source.availabilityUrl),
+    focus: mergeFocusTags(presets, custom),
+  });
 }
 
 type FieldCheckState =
@@ -183,7 +222,6 @@ export function ProfilePage({
   onSignOut,
   onProfileSaved,
   onExitCreateMode,
-  onAfterLocationSaved,
   onRequestLocationSetup,
   inviteToken,
   backLabel = "Back to map",
@@ -202,8 +240,14 @@ export function ProfilePage({
   /** Create-mode acknowledgment of Privacy & data. */
   const [createPrivacyAccepted, setCreatePrivacyAccepted] = useState(false);
   /** Edit-form focus areas (used for map filtering). */
-  const [editSelectedPresets, setEditSelectedPresets] = useState<string[]>([]);
-  const [editCustomFocusStr, setEditCustomFocusStr] = useState("");
+  const [editSelectedPresets, setEditSelectedPresets] = useState<string[]>(() =>
+    person ? getPresetFocusTags(person.focusTags) : [],
+  );
+  const [editCustomFocusStr, setEditCustomFocusStr] = useState(() =>
+    person && CUSTOM_FOCUS_AREAS_ENABLED
+      ? formatCustomFocusTags(getCustomFocusTags(person.focusTags))
+      : "",
+  );
   /** Live geocode feedback so people can fix city/country before saving. */
   const [locationCheck, setLocationCheck] = useState<FieldCheckState>({
     status: "idle",
@@ -230,8 +274,41 @@ export function ProfilePage({
     if (!identity || createMode || locationSetupHidden || identity.mustChangePassword) {
       return false;
     }
-    return shouldShowLocationSetup(draft);
-  }, [identity, createMode, locationSetupHidden, draft]);
+    /*
+     * Key off the saved profile, not the draft. Typing a city used to hide
+     * the card mid-word, and on a phone the page then jumped to the bottom.
+     */
+    return shouldShowLocationSetup(person);
+  }, [identity, createMode, locationSetupHidden, person]);
+
+  const personRef = useRef(person);
+  personRef.current = person;
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const quietSaveRef = useRef<
+    (kind: "pin" | "photo", patch?: Partial<Person>) => Promise<boolean>
+  >(async () => false);
+  const saveQueue = useRef(Promise.resolve());
+  quietSaveRef.current = async () => false;
+
+  const savedSignature = useMemo(() => {
+    if (!person) return "";
+    return profileSignature(
+      person,
+      getPresetFocusTags(person.focusTags),
+      CUSTOM_FOCUS_AREAS_ENABLED ? formatCustomFocusTags(getCustomFocusTags(person.focusTags)) : "",
+    );
+  }, [person]);
+  const draftSignature = useMemo(() => {
+    if (!draft) return "";
+    return profileSignature(draft, editSelectedPresets, editCustomFocusStr);
+  }, [draft, editSelectedPresets, editCustomFocusStr]);
+  const profileDirty =
+    savedSignature !== "" && draftSignature !== "" && savedSignature !== draftSignature;
+  const profileDirtyRef = useRef(false);
+  profileDirtyRef.current = profileDirty;
 
   const finishLocationSetup = () => {
     clearLocationSetupUrl();
@@ -241,7 +318,30 @@ export function ProfilePage({
 
   useEffect(() => {
     if (createMode && !identity) return;
-    setDraft(person);
+    setDraft((current) => {
+      if (!person) return null;
+      if (!current || current.id !== person.id) return person;
+      const cityDrift = profileText(current.currentCity) !== profileText(person.currentCity);
+      const countryDrift =
+        profileText(current.currentCountry) !== profileText(person.currentCountry);
+      const photoDrift =
+        profileText(current.profileImageUrl) !== profileText(person.profileImageUrl);
+      /*
+       * A refresh, or the save that just landed, must not wipe text the member
+       * is still editing. Only take the pin and photo once the form matches.
+       */
+      if (cityDrift || countryDrift || photoDrift || profileDirtyRef.current) {
+        return {
+          ...current,
+          currentCoordinates:
+            cityDrift || countryDrift
+              ? current.currentCoordinates
+              : (person.currentCoordinates ?? current.currentCoordinates),
+          profileImageUrl: photoDrift ? current.profileImageUrl : person.profileImageUrl,
+        };
+      }
+      return person;
+    });
   }, [person, createMode, identity]);
 
   /**
@@ -333,18 +433,31 @@ export function ProfilePage({
       const ok = await probeProfileImageUrl(url, controller.signal);
       if (controller.signal.aborted) return;
 
-      setProfileImageCheck(
-        ok
-          ? {
-              status: "success",
-              message: "Image loads — this URL will show on your map card after you save.",
-            }
-          : {
-              status: "error",
-              message:
-                "We could not load this image. Try a direct link to a .jpg or .png file, or paste the image URL from foresight.org.",
-            },
-      );
+      if (!ok) {
+        setProfileImageCheck({
+          status: "error",
+          message:
+            "We could not load this image. Try a direct link to a .jpg or .png file, or paste the image URL from foresight.org.",
+        });
+        return;
+      }
+      const already =
+        profileText(personRef.current?.profileImageUrl) === url;
+      const session = identityRef.current;
+      if (already || !session || session.mustChangePassword) {
+        setProfileImageCheck({
+          status: "success",
+          message: already ? "This photo loads." : "Photo found.",
+        });
+        return;
+      }
+      setProfileImageCheck({ status: "success", message: "Photo found. Saving…" });
+      const saved = await quietSaveRef.current("photo", { profileImageUrl: url });
+      if (controller.signal.aborted) return;
+      setProfileImageCheck({
+        status: "success",
+        message: saved ? "Photo found. Your profile is updated." : "Photo found.",
+      });
     }, 700);
 
     return () => {
@@ -387,24 +500,50 @@ export function ProfilePage({
         return;
       }
 
-      setDraft((current) =>
-        current && current.currentCity === draft.currentCity && current.currentCountry === draft.currentCountry
-          ? {
-              ...current,
-              currentCoordinates: {
-                lat: result.lat,
-                lng: result.lng,
-              },
-            }
-          : current,
-      );
-
       const resolvedLabel = [result.city || city, result.country || country]
         .filter(Boolean)
         .join(", ");
+      const savedPerson = personRef.current;
+      const already =
+        profileText(savedPerson?.currentCity) === city &&
+        profileText(savedPerson?.currentCountry) === country &&
+        hasPlacedPin(savedPerson?.currentCoordinates);
+      const session = identityRef.current;
+      /*
+       * An existing pin is already on the profile. Don't write a fresh geocode
+       * into the form, or Save changes lights up with nothing to save.
+       */
+      if (!already) {
+        setDraft((current) =>
+          current &&
+          current.currentCity === draft.currentCity &&
+          current.currentCountry === draft.currentCountry
+            ? {
+                ...current,
+                currentCoordinates: { lat: result.lat, lng: result.lng },
+              }
+            : current,
+        );
+      }
+      if (already || !session || session.mustChangePassword) {
+        setLocationCheck({
+          status: "success",
+          message: `Pin found near ${resolvedLabel}.`,
+        });
+        return;
+      }
+      setLocationCheck({ status: "success", message: "Pin found. Saving…" });
+      const saved = await quietSaveRef.current("pin", {
+        currentCity: city,
+        currentCountry: country,
+        currentCoordinates: { lat: result.lat, lng: result.lng },
+      });
+      if (controller.signal.aborted) return;
       setLocationCheck({
         status: "success",
-        message: `Map pin found near ${resolvedLabel}.`,
+        message: saved
+          ? `Pin found near ${resolvedLabel}. Your profile is updated.`
+          : `Pin found near ${resolvedLabel}.`,
       });
     }, 1400);
 
@@ -677,99 +816,172 @@ export function ProfilePage({
     setDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
-  const handleSave = async (options?: { afterSave?: () => void; requireCity?: boolean }) => {
-    if (!draft) return;
-    if (!identity) return;
+  const writeProfile = async (options?: {
+    afterSave?: () => void;
+    requireCity?: boolean;
+    quiet?: "pin" | "photo";
+    patch?: Partial<Person>;
+  }): Promise<boolean> => {
+    if (!draft) return false;
+    if (!identity) return false;
 
     if (identity.mustChangePassword) {
-      toast.error("Change your password before saving your profile.");
-      return;
+      if (!options?.quiet) toast.error("Change your password before saving your profile.");
+      return false;
     }
 
-    if (!draft.fullName.trim()) {
-      toast.error("Full name is required.");
-      return;
+    const next = { ...draft, ...options?.patch };
+    const saved = personRef.current;
+    const pinFields =
+      options?.quiet === "pin"
+        ? {
+            currentCity: options.patch?.currentCity ?? next.currentCity,
+            currentCountry: options.patch?.currentCountry ?? next.currentCountry,
+            currentCoordinates: options.patch?.currentCoordinates ?? next.currentCoordinates,
+          }
+        : null;
+    const photoFields =
+      options?.quiet === "photo"
+        ? { profileImageUrl: options.patch?.profileImageUrl ?? next.profileImageUrl }
+        : null;
+    /*
+     * A pin or photo saves only that discovery, on top of the stored profile.
+     * A bio still being typed stays in the form until Save changes.
+     */
+    const source = options?.quiet && saved ? { ...saved, ...pinFields, ...photoFields } : next;
+
+    if (!source.fullName.trim()) {
+      if (!options?.quiet) toast.error("Full name is required.");
+      return false;
     }
 
-    if (!draft.roleType) {
+    if (!source.roleType && !options?.quiet) {
       toast.error("Select a role type.");
-      return;
+      return false;
     }
 
-    if (options?.requireCity && !draft.currentCity.trim()) {
+    if (options?.requireCity && !source.currentCity.trim()) {
       toast.error("City is required to appear on the map.");
-      return;
+      return false;
     }
 
     if (
-      draft.fellowshipCohortYear !== 0 &&
-      draft.fellowshipCohortYear != null &&
-      (draft.fellowshipCohortYear < 1900 || draft.fellowshipCohortYear > 2100)
+      !options?.quiet &&
+      source.fellowshipCohortYear !== 0 &&
+      source.fellowshipCohortYear != null &&
+      (source.fellowshipCohortYear < 1900 || source.fellowshipCohortYear > 2100)
     ) {
       toast.error("Please enter a valid cohort year (1900–2100), or 0 for unknown.");
-      return;
+      return false;
     }
 
     const photoUrl =
-      draft.profileImageUrl?.trim() || getProfileImageOverride(draft.id) || "";
-    if (photoUrl) {
+      source.profileImageUrl?.trim() ||
+      (options?.quiet ? "" : getProfileImageOverride(source.id) || "");
+    if (!options?.quiet && photoUrl) {
       if (profileImageCheck.status === "checking") {
         toast.error("Still checking your profile photo — wait a moment, then save again.");
-        return;
+        return false;
       }
       if (profileImageCheck.status === "error") {
         toast.error("Fix your profile photo URL before saving.", {
           description: profileImageCheck.message,
         });
-        return;
+        return false;
       }
     }
 
     setIsSaving(true);
     try {
-      const roleTypes = withNodeeChoice(draft, getPersonRoleTypes(draft).includes("Nodee"));
+      const roleTypes = options?.quiet
+        ? getPersonRoleTypes(source)
+        : withNodeeChoice(source, getPersonRoleTypes(source).includes("Nodee"));
       const payload = {
-        ...draft,
+        ...source,
         profileImageUrl: photoUrl || null,
         roleType: roleTypes[0],
         roleTypes,
-        affiliationOrInstitution: normalizeAffiliationInput(draft.affiliationOrInstitution),
-        focusTags: mergeFocusTags(editSelectedPresets, editCustomFocusStr),
+        affiliationOrInstitution: options?.quiet
+          ? source.affiliationOrInstitution
+          : normalizeAffiliationInput(source.affiliationOrInstitution),
+        focusTags: options?.quiet
+          ? (source.focusTags ?? [])
+          : mergeFocusTags(editSelectedPresets, editCustomFocusStr),
       };
-      const result = await updatePerson(draft.id, payload, identity.token);
-      setDraft(result.person);
+      const result = await updatePerson(source.id, payload, identity.token);
+      setDraft((current) => {
+        if (!options?.quiet || !current) return result.person;
+        if (options.quiet === "photo") {
+          if (profileText(current.profileImageUrl) !== profileText(photoFields?.profileImageUrl)) {
+            return current;
+          }
+          return { ...current, profileImageUrl: result.person.profileImageUrl };
+        }
+        const cityStill =
+          profileText(current.currentCity) === profileText(pinFields?.currentCity);
+        const countryStill =
+          profileText(current.currentCountry) === profileText(pinFields?.currentCountry);
+        if (!cityStill || !countryStill) return current;
+        const serverCountry = profileText(result.person.currentCountry);
+        return {
+          ...current,
+          currentCountry:
+            !profileText(current.currentCountry) && serverCountry
+              ? result.person.currentCountry
+              : current.currentCountry,
+          currentCoordinates:
+            result.person.currentCoordinates ?? pinFields?.currentCoordinates ?? current.currentCoordinates,
+        };
+      });
       if (result.person.profileImageUrl?.trim()) {
-        clearProfileImageOverride(draft.id);
+        clearProfileImageOverride(source.id);
       }
+      personRef.current = result.person;
       onProfileSaved(result.person, result.auth);
-      if (result.person.currentCity?.trim()) {
+      const live = draftRef.current;
+      const pinLanded =
+        options?.quiet === "pin" &&
+        profileText(pinFields?.currentCity).length > 0 &&
+        live != null &&
+        profileText(live.currentCity) === profileText(pinFields?.currentCity);
+      if (pinLanded || (!options?.quiet && result.person.currentCity?.trim())) {
         finishLocationSetup();
       }
-      toast.success(
-        options?.requireCity ? "You're on the map" : "Profile updated",
-        {
-          description: options?.requireCity
-            ? "Your pin is live — fellows can find you on the atlas."
-            : "Your map card and directory details were refreshed immediately.",
-        },
-      );
+      if (options?.quiet === "pin") {
+        toast.success("Pin found. Your profile is updated.");
+      } else if (options?.quiet === "photo") {
+        toast.success("Photo found. Your profile is updated.");
+      } else {
+        toast.success("Changes saved");
+      }
       options?.afterSave?.();
+      return true;
     } catch (error) {
       toast.error("Failed to save profile", {
         description:
           error instanceof Error ? error.message : "Please try again in a moment.",
       });
+      return false;
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleSaveAndViewMap = () => {
-    void handleSave({
-      requireCity: true,
-      afterSave: () => onAfterLocationSaved?.(),
-    });
+  const handleSave = (options?: {
+    afterSave?: () => void;
+    requireCity?: boolean;
+    quiet?: "pin" | "photo";
+    patch?: Partial<Person>;
+  }): Promise<boolean> => {
+    const run = saveQueue.current.then(() => writeProfile(options));
+    saveQueue.current = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
   };
+
+  quietSaveRef.current = (kind, patch) => handleSave({ quiet: kind, patch });
 
   const handleDismissLocationSetup = () => {
     if (draft?.id) dismissLocationSetupForSession(draft.id);
@@ -839,8 +1051,6 @@ export function ProfilePage({
             onCityChange={(value) => updateDraft("currentCity", value)}
             onCountryChange={(value) => updateDraft("currentCountry", value)}
             locationCheck={locationCheck}
-            isSaving={isSaving}
-            onSaveAndViewMap={handleSaveAndViewMap}
             onDismiss={handleDismissLocationSetup}
           />
         ) : null}
@@ -1122,7 +1332,7 @@ export function ProfilePage({
                 title="Location and map"
                 description={
                   showLocationSetup
-                    ? "Same fields as above — save from the card or use Save profile below."
+                    ? "Same city as the card above. The pin saves itself when we find it."
                     : undefined
                 }
                 icon={<img src={foresightIconUrl} alt="" className="size-4 object-contain opacity-90" aria-hidden />}
@@ -1177,7 +1387,7 @@ export function ProfilePage({
                 {draft.isPrivate ? (
                   <p className="rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950">
                     You’re hidden from the map and directory. You can still RSVP,
-                    check in, and edit this profile. Save profile to apply.
+                    check in, and edit this profile. Save changes to apply.
                   </p>
                 ) : null}
                 {draft.roleType === "Foresight Team" ? (
@@ -1399,7 +1609,7 @@ export function ProfilePage({
             </section>
           </div>
 
-          {/* Bottom actions: Sign out and Save profile */}
+          {/* Bottom actions. Save stays quiet until the form actually differs. */}
           <div className="border-t border-gray-200 bg-gray-50/80 px-4 py-5 sm:px-8 lg:px-10">
             <div className="mb-4 flex flex-col items-start gap-2">
               <AgentAccessNote />
@@ -1421,16 +1631,28 @@ export function ProfilePage({
                 Sign out
               </Button>
               <Button
+                type="button"
                 onClick={() => void handleSave()}
-                disabled={isSaving || identity.mustChangePassword}
-                className="min-h-[48px] justify-center px-6 font-medium sm:min-w-[11rem]"
+                disabled={!profileDirty || isSaving || identity.mustChangePassword}
+                title={
+                  identity.mustChangePassword
+                    ? "Change your password before saving"
+                    : profileDirty
+                      ? "Save changes"
+                      : "No changes to save"
+                }
+                className={`min-h-[48px] w-full justify-center px-6 font-medium sm:w-auto sm:min-w-[11rem] ${
+                  profileDirty && !identity.mustChangePassword
+                    ? ""
+                    : "border border-gray-200 bg-gray-100 text-gray-400 shadow-none hover:bg-gray-100"
+                }`}
               >
                 {isSaving ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
                   <Save className="size-4" />
                 )}
-                Save profile
+                {isSaving ? "Saving…" : "Save changes"}
               </Button>
             </div>
             {identity.mustChangePassword ? (

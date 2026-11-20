@@ -5,8 +5,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { AlertCircle, CheckCircle, Loader2, MapPin, Sparkles } from "lucide-react";
-import { Button } from "../ui/button";
+import { AlertCircle, CheckCircle, Loader2, MapPin } from "lucide-react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 
@@ -23,8 +22,6 @@ interface LocationSetupPromptProps {
   onCityChange: (value: string) => void;
   onCountryChange: (value: string) => void;
   locationCheck: LocationCheckState;
-  isSaving: boolean;
-  onSaveAndViewMap: () => void;
   onDismiss: () => void;
 }
 
@@ -35,25 +32,23 @@ export function LocationSetupPrompt({
   onCityChange,
   onCountryChange,
   locationCheck,
-  isSaving,
-  onSaveAndViewMap,
   onDismiss,
 }: LocationSetupPromptProps) {
   const cityRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const t = window.setTimeout(() => cityRef.current?.focus(), 300);
-    return () => window.clearTimeout(t);
+    const frame = window.requestAnimationFrame(() => {
+      const field = cityRef.current;
+      if (!field) return;
+      /* Don't let the browser scroll a long profile to chase the caret. */
+      field.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
-
-  const canSave =
-    city.trim().length > 0 &&
-    !isSaving &&
-    locationCheck.status !== "checking";
 
   return (
     <section
-      className="overflow-hidden rounded-[1.75rem] border-2 border-sky-300 bg-gradient-to-br from-sky-50 via-white to-emerald-50 shadow-lg shadow-sky-100/60"
+      className="scroll-mt-4 overflow-anchor-none overflow-hidden rounded-[1.75rem] border-2 border-sky-300 bg-gradient-to-br from-sky-50 via-white to-emerald-50 shadow-lg shadow-sky-100/60"
       aria-labelledby="location-setup-title"
     >
       <div className="border-b border-sky-200/80 bg-white/60 px-5 py-5 sm:px-7 sm:py-6">
@@ -103,39 +98,17 @@ export function LocationSetupPrompt({
           <LocationSetupNotice state={locationCheck} />
         ) : (
           <p className="text-xs text-gray-500">
-            Use one city only — where you&apos;re usually based, not every place
-            you travel.
+            Use one city — where you&apos;re usually based. When we find the pin, your profile updates.
           </p>
         )}
 
-        <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="min-h-[44px] text-sm font-medium text-gray-500 transition-colors hover:text-gray-800 touch-manipulation"
-          >
-            I&apos;ll do this later
-          </button>
-          <Button
-            type="button"
-            size="lg"
-            disabled={!canSave}
-            onClick={onSaveAndViewMap}
-            className="min-h-[48px] w-full gap-2 font-semibold sm:w-auto"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Sparkles className="size-4" aria-hidden />
-                Save &amp; show me on the map
-              </>
-            )}
-          </Button>
-        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="min-h-[44px] text-sm font-medium text-gray-500 transition-colors hover:text-gray-800 touch-manipulation"
+        >
+          I&apos;ll do this later
+        </button>
       </div>
     </section>
   );
