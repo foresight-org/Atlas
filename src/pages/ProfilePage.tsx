@@ -10,7 +10,7 @@ import { PRESET_FOCUS_AREAS, CUSTOM_FOCUS_AREAS_ENABLED, getPresetFocusTags, get
 import { FocusTagsDisplay } from "../components/FocusTagsDisplay";
 import { CustomFocusInput } from "../components/CustomFocusInput";
 import { PersonContactLinks } from "../components/PersonContactLinks";
-import { AgentAccessNote } from "../components/community/AgentAccessNote";
+import { AgentConnectPrompt } from "../components/profile/AgentConnectPrompt";
 import { downloadPersonalGraph } from "../services/personalGraph";
 import { getPersonRSVPs } from "../services/rsvp";
 import { fetchRSVPsFromAPI } from "../services/rsvp";
@@ -1116,6 +1116,7 @@ export function ProfilePage({
             </div>
 
             <OpenToMeetProfileStatus person={draft} />
+            <AgentConnectPrompt />
           </div>
 
           <div className="grid min-w-0 gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.85fr)] lg:px-10 lg:py-10 lg:gap-12">
@@ -1631,7 +1632,6 @@ export function ProfilePage({
           {/* Bottom actions. Save stays quiet until the form actually differs. */}
           <div className="border-t border-gray-200 bg-gray-50/80 px-4 py-5 sm:px-8 lg:px-10">
             <div className="mb-4 flex flex-col items-start gap-2">
-              <AgentAccessNote />
               <button
                 type="button"
                 onClick={() => downloadPersonalGraph(draft, getPersonRSVPs(draft.id))}

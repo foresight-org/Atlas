@@ -8,8 +8,9 @@
  * belongs to a different email is not duplicated: the team can mail the
  * address already on file, or connect the new address to that same row.
  *
- * The reminder is scheduled with Resend for 14 days later. That is inside
- * Resend's 30-day scheduling window, so no second cron is required.
+ * The reminder is scheduled with Resend for 7 days later. The link itself
+ * lasts 14 days, so the reminder still opens. That is inside Resend's
+ * 30-day scheduling window, so no second cron is required.
  * Idempotency keys are per email per day, so a retry does not send twice.
  */
 
@@ -22,7 +23,7 @@ const { mailConfigured, sendMail, fromAddress, renderAtlasEmail } = require("./m
 const { normalizeName } = require("./realdata-store");
 
 const SLICE = 4;
-const REMINDER_MS = 14 * 24 * 60 * 60 * 1000;
+const REMINDER_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_GUESTS = 400;
 
 function emailKey(email) {
@@ -38,26 +39,26 @@ function signInUrl(origin, personId) {
   return `${origin}/claim?token=${encodeURIComponent(token)}`;
 }
 
-function eventPhrase(eventName) {
-  const name = String(eventName || "").trim();
-  return name ? name : "a Foresight event";
-}
-
 function named(firstName, sentence) {
   const name = String(firstName || "").trim();
   return name ? `Hi ${name}, ${sentence}` : sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
-function renderInvite(guest, link, eventName) {
-  const where = eventPhrase(eventName);
+function renderInvite(guest, link) {
+  const name = String(guest.firstName || "").trim();
+  const hello = name ? `Hi ${name}.` : "Hello.";
   return renderAtlasEmail({
     subject: "Your invite to the Foresight community",
-    preheader: "A sign-in link for Foresight Atlas.",
+    preheader: "An account on the Foresight Atlas community layer.",
     title: "You're invited",
-    body: named(guest.firstName, `you were at ${where}. This link opens a community account.`),
-    button: "Sign in",
+    body: [
+      `${hello} Foresight Atlas is how our grantees, fellows, and alumni find one another.`,
+      "There is now a community layer for people who have been at a Foresight event. That includes you.",
+      "If you want an account, use the link below.",
+    ].join("\n\n"),
+    button: "Create your account",
     href: link,
-    note: "The link works for 30 days. If you were not expecting this, you can ignore it.",
+    note: "The link works for 14 days. Once the account is yours, your profile shows how to connect the Atlas to an agent you already use, so you do not have to keep coming back to the website. If you were not expecting this, you can ignore it.",
   });
 }
 
@@ -66,10 +67,10 @@ function renderReminder(guest, link) {
     subject: "Your Foresight Atlas invite",
     preheader: "Your sign-in link is still good.",
     title: "Your invite is still here",
-    body: named(guest.firstName, "if you already signed in, you can ignore this."),
-    button: "Sign in",
+    body: named(guest.firstName, "your invite to the community layer is still open."),
+    button: "Create your account",
     href: link,
-    note: "The link works for 30 days.",
+    note: "The link works for 14 days. If you already created an account, you can ignore this.",
   });
 }
 
@@ -110,7 +111,7 @@ function renderExistingSignIn(fullName, link) {
     body: name ? `Hi ${name}, ${sentence}` : sentence.charAt(0).toUpperCase() + sentence.slice(1),
     button: "Sign in",
     href: link,
-    note: "It works for 30 days. If this was not you, you can ignore it.",
+    note: "It works for 14 days. If this was not you, you can ignore it.",
   });
 }
 
@@ -298,4 +299,4 @@ async function runGuestInvites(input) {
   };
 }
 
-module.exports = { runGuestInvites };
+module.exports = { runGuestInvites, renderInvite };

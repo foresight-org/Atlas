@@ -360,9 +360,9 @@ function issueClaimToken(personId) {
  */
 
 const RESET_TTL_MS = 1000 * 60 * 60 * 24; // 24 hours
-/** Self-serve sign-in links. Invite mail uses a longer window so the 14-day reminder still opens. */
+/** Self-serve sign-in links. An invite lives 14 days, so the 7-day reminder still opens. */
 const SIGNIN_TTL_MS = 1000 * 60 * 60 * 24;
-const SIGNIN_INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const SIGNIN_INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 14;
 
 /** Short, non-reversible fingerprint of a password hash ("password version"). */
 function passwordVersion(passwordHash) {

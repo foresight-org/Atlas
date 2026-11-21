@@ -128,6 +128,23 @@ const BUTTON = "#030213";
 const SITE = "https://atlas.foresight.org";
 const LOGO = `${SITE}/brand/foresight-logo.png`;
 
+function bodyHtml(body) {
+  const parts = String(body || "")
+    .split(/\n\n/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const style = `font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:${MUTED};`;
+  if (parts.length <= 1) {
+    return `<p style="margin:0;${style}">${escapeHtml(parts[0] || "")}</p>`;
+  }
+  return parts
+    .map((part, index) => {
+      const margin = index === parts.length - 1 ? "0" : "0 0 12px 0";
+      return `<p style="margin:${margin};${style}">${escapeHtml(part)}</p>`;
+    })
+    .join("");
+}
+
 function givenName(fullName) {
   const name = String(fullName || "").trim();
   if (!name || name.includes("@")) return "";
@@ -178,7 +195,7 @@ function renderAtlasEmail(copy) {
           </tr>
           <tr>
             <td style="padding:14px 32px 0 32px;">
-              <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:${MUTED};">${escapeHtml(copy.body)}</p>
+              ${bodyHtml(copy.body)}
             </td>
           </tr>
           <tr>
