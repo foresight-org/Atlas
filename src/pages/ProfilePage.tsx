@@ -67,6 +67,8 @@ import {
   shouldShowLocationSetup,
 } from "../utils/locationSetup";
 import { LocationSetupPrompt } from "../components/profile/LocationSetupPrompt";
+import { CohortYearField } from "../components/profile/CohortYearField";
+import { AssistantProfileProposal } from "../components/profile/AssistantProfileProposal";
 import {
   getPrimaryRoleType,
   getPersonRoleTypes,
@@ -97,14 +99,6 @@ const NODE_OPTIONS: PrimaryNode[] = [
   ...LOCATION_NODE_OPTIONS,
   "Alumni",
 ];
-
-/** Cohort years from 2017 to current, plus 0 for Unknown. */
-const COHORT_YEAR_OPTIONS: number[] = (() => {
-  const current = new Date().getFullYear();
-  const years: number[] = [0];
-  for (let y = 2017; y <= current; y++) years.push(y);
-  return years;
-})();
 
 /** Blank person for the "Add yourself" create flow. */
 const EMPTY_PERSON: Person = {
@@ -651,7 +645,7 @@ export function ProfilePage({
       };
 
       return (
-        <ProfilePageShell maxWidth="max-w-3xl">
+        <ProfilePageShell maxWidth="max-w-3xl" identity={identity} onProfileSaved={onProfileSaved}>
           <button
             type="button"
             onClick={onNavigateHome}
@@ -774,7 +768,7 @@ export function ProfilePage({
 
     /* Sign-in form with optional "Add yourself" link. */
     return (
-      <ProfilePageShell maxWidth="max-w-3xl">
+      <ProfilePageShell maxWidth="max-w-3xl" identity={identity} onProfileSaved={onProfileSaved}>
           <button
             type="button"
             onClick={onNavigateHome}
@@ -799,13 +793,13 @@ export function ProfilePage({
   if (!draft) {
     if (resolving) {
       return (
-        <ProfilePageShell maxWidth="max-w-3xl">
+        <ProfilePageShell maxWidth="max-w-3xl" identity={identity} onProfileSaved={onProfileSaved}>
           <p className="px-2 py-16 text-center text-sm text-gray-500">Loading your profile…</p>
         </ProfilePageShell>
       );
     }
     return (
-      <ProfilePageShell maxWidth="max-w-3xl">
+      <ProfilePageShell maxWidth="max-w-3xl" identity={identity} onProfileSaved={onProfileSaved}>
           <button
             type="button"
             onClick={onNavigateHome}
@@ -1067,7 +1061,7 @@ export function ProfilePage({
   };
 
   return (
-    <ProfilePageShell maxWidth="max-w-6xl">
+    <ProfilePageShell maxWidth="max-w-6xl" identity={identity} onProfileSaved={onProfileSaved}>
         <button
           type="button"
           onClick={onNavigateHome}
@@ -1170,20 +1164,10 @@ export function ProfilePage({
                   </Field>
 
                   <Field label="Cohort year" required>
-                    <Select
-                      value={String(draft.fellowshipCohortYear)}
-                      onValueChange={(v) =>
-                        updateDraft("fellowshipCohortYear", v === "0" ? 0 : Number(v))
-                      }
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">Unknown</SelectItem>
-                        {COHORT_YEAR_OPTIONS.filter((y) => y !== 0).map((y) => (
-                          <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <CohortYearField
+                      value={draft.fellowshipCohortYear}
+                      onChange={(year) => updateDraft("fellowshipCohortYear", year)}
+                    />
                   </Field>
 
                   <Field label="End year">
@@ -1704,13 +1688,18 @@ export function ProfilePage({
 function ProfilePageShell({
   children,
   maxWidth,
+  identity,
+  onProfileSaved,
 }: {
   children: ReactNode;
   maxWidth: string;
+  identity: Identity | null;
+  onProfileSaved?: ProfilePageProps["onProfileSaved"];
 }) {
   return (
     <div className="flex-1 overflow-auto overflow-x-hidden bg-[linear-gradient(to_bottom,#f0f2f5_0%,#f1f3f6_100%)]">
       <div className={`mx-auto flex min-w-0 ${maxWidth} flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10 lg:px-8`}>
+        <AssistantProfileProposal identity={identity} onProfileSaved={onProfileSaved} />
         {children}
       </div>
     </div>

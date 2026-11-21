@@ -9,6 +9,7 @@
 
 const { assemble } = require("../memory/assemble");
 const { bundlesFor } = require("../memory/store");
+const { fence } = require("../assistant/quotes");
 
 const PLACES = {
   berlin: "Berlin",
@@ -29,7 +30,7 @@ function topicCard(topic) {
     kind: topic.kind,
     conversations: topic.weight || 0,
   };
-  const summary = clip(topic.summary, 280);
+  const summary = fence(clip(topic.summary, 280));
   if (summary) card.summary = summary;
   return card;
 }
@@ -37,9 +38,9 @@ function topicCard(topic) {
 function insightCard(insight) {
   const card = {
     type: insight.type,
-    title: clip(insight.title, 80),
+    title: fence(clip(insight.title, 80)),
   };
-  const body = clip(insight.body, 800);
+  const body = fence(clip(insight.body, 800));
   if (body) card.body = body;
   if (insight.toNode) card.toNode = insight.toNode;
   if (insight.recommendation?.name) {
@@ -79,7 +80,7 @@ function reading(placeId, bundles) {
     topics,
     insights: graph.insights.slice(0, 12).map(insightCard),
     conversations: graph.conversations.slice(-20).map((conversation) => ({
-      label: clip(conversation.label, 80),
+      label: fence(clip(conversation.label, 80)),
       at: conversation.at,
     })),
     connections: graph.edges.slice(0, 40).map((edge) => ({

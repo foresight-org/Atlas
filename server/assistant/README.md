@@ -4,7 +4,7 @@ A read-only MCP server so a **signed-in member** can use Claude or ChatGPT to as
 
 Installing the connector does not grant access. Every tool call needs an OAuth token issued only after the person signs in with their Atlas name and password. Someone who is not on the roster cannot finish that sign-in, so they never receive a token and never see the directory.
 
-Roster emails are never included. Private profiles stay off shared lists. Senior Fellows and Prize Winners appear without contact fields. Changing a password invalidates every assistant token for that member, because each token is bound to a fingerprint of the current password hash. There is no separate token database — same stateless approach as claim links.
+Roster emails are never included. Private profiles stay off shared lists. Senior Fellows and Prize Winners appear without contact fields. Bios and notes are returned as quotes. A profile change is a signed link the member saves on their own profile page; the assistant cannot write the sheet itself. Changing a password invalidates every assistant token for that member, because each token is bound to a fingerprint of the current password hash. There is no separate token database — same stateless approach as claim links.
 
 Turn the whole connector off without deleting it:
 

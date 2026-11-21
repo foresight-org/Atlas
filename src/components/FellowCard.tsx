@@ -6,7 +6,7 @@ import { Card } from "./ui/card";
 import { cn } from "./ui/utils";
 import { getRolePillClass } from "../styles/roleColors";
 import { getNodeLabel } from "../utils/nodeLabels";
-import { getCohortLabel, effectiveIsAlumni } from "../utils/cohortLabel";
+import { directoryCohortLine, effectiveIsAlumni } from "../utils/cohortLabel";
 import { getPrimaryRoleType } from "../utils/roleTypes";
 import { getEffectiveProfileImageUrl } from "../services/profileImageOverride";
 import { formatEventDateShort } from "../utils/eventTiming";
@@ -56,6 +56,7 @@ export function FellowCard({
   const nodeLabel = getNodeLabel(person.primaryNode);
   const avatarUrl = getEffectiveProfileImageUrl(person);
   const presetFocusTags = getPresetFocusTags(person.focusTags);
+  const cohortLine = directoryCohortLine(person);
   const formatDateRange = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -116,9 +117,7 @@ export function FellowCard({
                   Alumni
                 </Badge>
               )}
-              <span className="text-sm text-gray-600">
-                Cohort {getCohortLabel(person)}
-              </span>
+              {cohortLine ? <span className="text-sm text-gray-600">{cohortLine}</span> : null}
             </div>
             </div>
           </div>

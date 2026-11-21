@@ -16,7 +16,7 @@ const PAGE_BG =
   "linear-gradient(180deg, #f7f6f3 0%, #ffffff 42%, #f3f1ec 100%)";
 
 /** Bump when the notice changes in a material way. */
-const LAST_UPDATED = "19 November 2026";
+const LAST_UPDATED = "21 November 2026";
 
 const CONTROLLER_ADDRESS =
   "50 California Street, Suite 1500, San Francisco, CA 94111";
@@ -115,6 +115,18 @@ export function PrivacyPage({ onNavigateHome }: PrivacyPageProps) {
               windows, and private connection bookmarks. Sign-in is a link we
               email to the address on your account. If you set a password, we
               store only a hash. Email addresses stay off the public map.
+            </p>
+          </Section>
+
+          <Section title="Assistants">
+            <p>
+              You can connect your own assistant. It sees the same profiles you
+              see, and it does not receive the email on your account. Bios,
+              event descriptions, and node notes reach it as quotes, not as
+              instructions. It cannot change your profile on its own. A change
+              waits on this page until you save it. Once connected, those
+              profiles are also handled by the assistant you chose, on your
+              computer or in that product.
             </p>
           </Section>
 

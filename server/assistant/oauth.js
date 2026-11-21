@@ -485,4 +485,6 @@ module.exports = {
   protectedResourceMetadata,
   authorizationServerMetadata,
   mcpResource,
+  signPayload,
+  readPayload,
 };

@@ -17,6 +17,7 @@
  */
 
 const RETURN_URL_KEY = "foresightatlas_return_url";
+const PROFILE_PROPOSAL_KEY = "foresightatlas_profile_proposal";
 
 /** Persist the URL the member should come back to after signing in. */
 export function setPostLoginReturnUrl(pathAndQuery: string): void {
@@ -35,6 +36,30 @@ export function consumePostLoginReturnUrl(): string | null {
     if (!raw) return null;
     sessionStorage.removeItem(RETURN_URL_KEY);
     return raw;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A profile change from an assistant has to survive the email-link tab.
+ * sessionStorage would stay behind in the tab that opened the link.
+ */
+export function rememberProfileProposal(pathAndQuery: string): void {
+  try {
+    if (!pathAndQuery.startsWith("/profile?assistant=")) return;
+    localStorage.setItem(PROFILE_PROPOSAL_KEY, pathAndQuery);
+  } catch {
+    // The link in the address bar still works once they are signed in.
+  }
+}
+
+export function consumeProfileProposal(): string | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_PROPOSAL_KEY);
+    if (!raw) return null;
+    localStorage.removeItem(PROFILE_PROPOSAL_KEY);
+    return raw.startsWith("/profile?assistant=") ? raw : null;
   } catch {
     return null;
   }

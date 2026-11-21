@@ -11,6 +11,7 @@
 
 const { passwordVersion } = require("../directory-auth");
 const { redactPublicContactFields } = require("../role-types");
+const { fence } = require("./quotes");
 
 const BOOKING_URL = /^https?:\/\/[^\s]+$/i;
 
@@ -50,11 +51,11 @@ function publicCard(person) {
     country: safe.currentCountry || "",
     focus: Array.isArray(safe.focusTags) ? safe.focusTags : [],
     affiliation: safe.affiliationOrInstitution || "",
-    tagline: clip(safe.shortProjectTagline, 240),
-    about: clip(safe.expandedProjectDescription, 500),
-    lookingFor: clip(safe.currentlyLookingFor, 220),
-    contact: safe.contactUrlOrHandle || "",
-    calendarEmail: safe.calendarEmail || "",
+    tagline: fence(clip(safe.shortProjectTagline, 240)),
+    about: fence(clip(safe.expandedProjectDescription, 500)),
+    lookingFor: fence(clip(safe.currentlyLookingFor, 220)),
+    contact: fence(clip(safe.contactUrlOrHandle, 200)),
+    calendarEmail: fence(clip(safe.calendarEmail, 120)),
     bookingUrl: bookingUrl(safe.availabilityUrl) || "",
     profileUrl: safe.profileUrl || "",
   };

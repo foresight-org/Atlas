@@ -75,7 +75,7 @@ import {
 } from "./services/memberAuth";
 import { redeemLoginLink } from "./services/loginLink";
 import { fetchConnectionsFromAPI } from "./services/connections";
-import { consumePostLoginReturnUrl } from "./services/returnUrl";
+import { consumePostLoginReturnUrl, consumeProfileProposal } from "./services/returnUrl";
 import { WelcomeLetter } from "./components/welcome/WelcomeLetter";
 import { CommunityWelcome } from "./components/welcome/CommunityWelcome";
 import { CommunityAccountPage } from "./pages/CommunityAccountPage";
@@ -544,7 +544,7 @@ export default function App() {
         // If the member arrived from a deep link that required auth (e.g. a
         // check-in QR code while signed out), send them back where they
         // meant to be so the flow feels like one seamless tap.
-        const returnUrl = consumePostLoginReturnUrl();
+        const returnUrl = consumePostLoginReturnUrl() || consumeProfileProposal();
         if (returnUrl) {
           navigate(returnUrl);
         } else if (personNeedsLocation(result.person)) {
@@ -575,7 +575,7 @@ export default function App() {
       setIdentityState(getIdentity());
       setSelfPerson(result.person);
       if (result.firstClaim) armWelcomeLetter(result.person.id);
-      const returnUrl = consumePostLoginReturnUrl();
+      const returnUrl = consumePostLoginReturnUrl() || consumeProfileProposal();
       if (returnUrl) navigate(returnUrl);
       else if (personNeedsLocation(result.person)) navigate(profileLocationSetupPath());
       else navigate("/");

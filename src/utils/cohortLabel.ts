@@ -12,6 +12,37 @@ export function getCohortLabel(person: Pick<Person, "fellowshipCohortYear" | "fe
   return `${start}–${end}`;
 }
 
+/**
+ * What the directory card says beside the role.
+ * A known year stays. Alumni is its own badge. An empty unclaimed
+ * profile does not get a dash where the year would be.
+ */
+export function directoryCohortLine(
+  person: Pick<
+    Person,
+    | "fellowshipCohortYear"
+    | "fellowshipEndYear"
+    | "isAlumni"
+    | "shortProjectTagline"
+    | "expandedProjectDescription"
+    | "currentCity"
+    | "currentlyLookingFor"
+    | "affiliationOrInstitution"
+  >,
+): string | null {
+  const year = getCohortLabel(person);
+  if (year !== "—") return `Cohort ${year}`;
+  if (effectiveIsAlumni(person)) return null;
+  const wrote = [
+    person.shortProjectTagline,
+    person.expandedProjectDescription,
+    person.currentCity,
+    person.currentlyLookingFor,
+    person.affiliationOrInstitution,
+  ].some((value) => String(value || "").trim());
+  return wrote ? null : "Hasn't updated their profile";
+}
+
 const DEFAULT_REFERENCE_YEAR = () => new Date().getFullYear();
 
 /**

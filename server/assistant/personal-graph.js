@@ -5,6 +5,8 @@
  * No roster email. Suitable to hand to their agent or knowledge graph.
  */
 
+const { fence } = require("./quotes");
+
 function clip(value, max) {
   const text = String(value || "").replace(/\u0000/g, "").trim();
   if (!text) return "";
@@ -35,10 +37,10 @@ function personalGraph(person, rsvps, eventsById) {
     name: person.fullName,
     knowsAbout: focus,
     homeLocation: place,
-    description: clip(person.shortProjectTagline, 240),
+    description: fence(clip(person.shortProjectTagline, 240)),
     additionalProperty: [
       ...(intent
-        ? [{ "@type": "PropertyValue", name: "intent", value: intent }]
+        ? [{ "@type": "PropertyValue", name: "intent", value: fence(intent) }]
         : []),
       {
         "@type": "PropertyValue",

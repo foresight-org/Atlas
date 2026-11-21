@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { MapPin } from "lucide-react";
 import { getLastSignedInName } from "../../services/identity";
-import { setPostLoginReturnUrl } from "../../services/returnUrl";
+import { rememberProfileProposal, setPostLoginReturnUrl } from "../../services/returnUrl";
 import {
   getCheckInAuthCopy,
   checkInReturnPath,
@@ -22,10 +22,17 @@ interface AuthGateProps {
 export function AuthGate({ route }: AuthGateProps) {
   const checkInCopy = useMemo(() => getCheckInAuthCopy(route), [route]);
 
+  const assistantChange =
+    route === "/profile" && new URLSearchParams(window.location.search).has("assistant");
+
   useEffect(() => {
+    if (assistantChange) {
+      const token = new URLSearchParams(window.location.search).get("assistant") || "";
+      if (token) rememberProfileProposal(`/profile?assistant=${encodeURIComponent(token)}`);
+    }
     const returnPath = checkInReturnPath(route);
     if (returnPath) setPostLoginReturnUrl(returnPath);
-  }, [route]);
+  }, [route, assistantChange]);
 
   return (
     <main
@@ -73,6 +80,11 @@ export function AuthGate({ route }: AuthGateProps) {
         <div className="rounded-3xl border border-gray-200 bg-white/90 p-6 shadow-xl backdrop-blur-sm sm:p-7">
           <DirectoryLoginForm
             title={checkInCopy?.formTitle}
+            description={
+              assistantChange
+                ? "Your assistant asked to change your profile. Sign in and you’ll see the exact fields. Nothing is saved until you confirm."
+                : undefined
+            }
             submitLabel={checkInCopy?.submitLabel}
             initialName={getLastSignedInName()}
           />

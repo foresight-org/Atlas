@@ -173,27 +173,27 @@ export function AppHeader({
           <div className="header-desktop-nav flex-shrink-0 items-center gap-1 sm:gap-2">
             {onSwitchLayer ? (
               <div className="mr-1 flex flex-col items-stretch gap-0.5">
-              <span className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Admin</span>
-              <div className="flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="Admin view">
+              <span className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Layer</span>
+              <div className="flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="Atlas layer">
                 <button
                   type="button"
                   aria-pressed={!communityLayer}
                   onClick={() => onSwitchLayer("inner")}
-                  className={`min-h-9 rounded-full px-3 text-xs font-semibold sm:text-sm ${
+                  className={`min-h-9 rounded-full px-2.5 text-[11px] font-semibold sm:text-xs ${
                     communityLayer ? "text-gray-500" : "bg-white text-gray-900 shadow-sm"
                   }`}
                 >
-                  Internal
+                  Programs layer
                 </button>
                 <button
                   type="button"
                   aria-pressed={communityLayer}
                   onClick={() => onSwitchLayer("community")}
-                  className={`min-h-9 rounded-full px-3 text-xs font-semibold sm:text-sm ${
+                  className={`min-h-9 rounded-full px-2.5 text-[11px] font-semibold sm:text-xs ${
                     communityLayer ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
                   }`}
                 >
-                  Community
+                  Community layer
                 </button>
               </div>
               </div>
@@ -562,8 +562,8 @@ export function AppHeader({
               <ul className="space-y-1.5">
                 {onSwitchLayer ? (
                   <li className="mb-2">
-                    <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Admin</p>
-                  <div className="flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="Admin view">
+                    <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Layer</p>
+                  <div className="flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="Atlas layer">
                     <button
                       type="button"
                       aria-pressed={!communityLayer}
@@ -571,11 +571,11 @@ export function AppHeader({
                         onSwitchLayer("inner");
                         closeMobileMenu();
                       }}
-                      className={`min-h-11 flex-1 rounded-full text-sm font-semibold ${
+                      className={`min-h-11 flex-1 rounded-full px-2 text-[11px] font-semibold leading-tight ${
                         communityLayer ? "text-gray-500" : "bg-white text-gray-900 shadow-sm"
                       }`}
                     >
-                      Internal
+                      Programs layer
                     </button>
                     <button
                       type="button"
@@ -584,11 +584,11 @@ export function AppHeader({
                         onSwitchLayer("community");
                         closeMobileMenu();
                       }}
-                      className={`min-h-11 flex-1 rounded-full text-sm font-semibold ${
+                      className={`min-h-11 flex-1 rounded-full px-2 text-[11px] font-semibold leading-tight ${
                         communityLayer ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
                       }`}
                     >
-                      Community
+                      Community layer
                     </button>
                   </div>
                   </li>

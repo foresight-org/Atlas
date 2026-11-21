@@ -61,7 +61,8 @@ import { cn } from "./ui/utils";
 import { getRolePillClass } from "../styles/roleColors";
 import { connectionsAccentGradient } from "../styles/gradients";
 import { getNodeLabel } from "../utils/nodeLabels";
-import { getCohortLabel, effectiveIsAlumni } from "../utils/cohortLabel";
+import { directoryCohortLine, effectiveIsAlumni } from "../utils/cohortLabel";
+import { CohortYearField } from "./profile/CohortYearField";
 import { getPrimaryRoleType, lockedPrimaryRole } from "../utils/roleTypes";
 import { PRESET_FOCUS_AREAS, CUSTOM_FOCUS_AREAS_ENABLED, getPresetFocusTags, getCustomFocusTags, formatCustomFocusTags, mergeFocusTags } from "../data/focusAreas";
 import { FocusTagsDisplay } from "./FocusTagsDisplay";
@@ -92,14 +93,6 @@ import {
   missingLocationMessage,
 } from "../utils/contactPrivacy";
 import { FocusNeighbors } from "./FocusNeighbors";
-
-/** Cohort years 2017–current plus 0 for Unknown. */
-const COHORT_YEAR_OPTIONS: number[] = (() => {
-  const current = new Date().getFullYear();
-  const years: number[] = [0];
-  for (let y = 2017; y <= current; y++) years.push(y);
-  return years;
-})();
 
 /** Location-only nodes; alumni is a separate program-status field. */
 const LOCATION_NODE_OPTIONS: PrimaryNode[] = ["Global", "Berlin Node", "Bay Area Node"];
@@ -752,15 +745,12 @@ export function PersonDetailModal({
                       <span className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800">
                         {lockedPrimaryRole(editingPerson)}
                       </span>
-                      <Select value={String(editingPerson.fellowshipCohortYear)} onValueChange={(v) => setEditingPerson({ ...editingPerson, fellowshipCohortYear: v === "0" ? 0 : parseInt(v, 10) || 0 })}>
-                        <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">Unknown</SelectItem>
-                          {COHORT_YEAR_OPTIONS.filter((y) => y !== 0).map((y) => (
-                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="w-36">
+                        <CohortYearField
+                          value={editingPerson.fellowshipCohortYear}
+                          onChange={(year) => setEditingPerson({ ...editingPerson, fellowshipCohortYear: year })}
+                        />
+                      </div>
                       <span className="text-gray-400">–</span>
                       <Input type="number" placeholder="End" className="w-20" value={editingPerson.fellowshipEndYear ?? ""} onChange={(e) => { const v = e.target.value.trim(); setEditingPerson({ ...editingPerson, fellowshipEndYear: v === "" ? null : parseInt(v, 10) || null }); }} />
                       <Select value={editingPerson.isAlumni ? "Alumni" : "Current"} onValueChange={(v) => setEditingPerson({ ...editingPerson, isAlumni: v === "Alumni" })}>
@@ -781,7 +771,9 @@ export function PersonDetailModal({
                       >
                         {getPrimaryRoleType(displayPerson)}
                       </span>
-                      <span className="person-detail-pill person-detail-pill-muted">Cohort {getCohortLabel(displayPerson)}</span>
+                      {directoryCohortLine(displayPerson) ? (
+                        <span className="person-detail-pill person-detail-pill-muted">{directoryCohortLine(displayPerson)}</span>
+                      ) : null}
                       {effectiveIsAlumni(displayPerson) && <Badge variant="alumni" className="person-detail-badge-pill text-xs">Alumni</Badge>}
                     </>
                   )}
