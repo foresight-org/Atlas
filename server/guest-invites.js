@@ -19,7 +19,7 @@ const { parseGuestCsv, normalizeEmail } = require("./guest-csv");
 const { issueSignInToken, SIGNIN_INVITE_TTL_MS } = require("./directory-auth");
 const { addOtherEmail, findRecordsByEmail, accountEmails, maskEmail } = require("./account-emails");
 const { isCommunityPerson, isForesightTeamPerson } = require("./role-types");
-const { mailConfigured, sendMail, fromAddress, renderAtlasEmail } = require("./mail");
+const { mailConfigured, sendMail, fromAddress, renderAtlasEmail, atlasBetaLine } = require("./mail");
 const { normalizeName } = require("./realdata-store");
 
 const SLICE = 4;
@@ -49,12 +49,13 @@ function renderInvite(guest, link) {
   const hello = name ? `Hi ${name}.` : "Hello.";
   return renderAtlasEmail({
     subject: "Your invite to the Foresight community",
-    preheader: "An account on the Foresight Atlas community layer.",
+    preheader: "The Atlas is in beta. An account on the community layer.",
     title: "You're invited",
     body: [
       `${hello} Foresight Atlas is how our grantees, fellows, and alumni find one another.`,
       "There is now a community layer for people who have been at a Foresight event. That includes you.",
       "If you want an account, use the link below.",
+      atlasBetaLine(),
     ].join("\n\n"),
     button: "Create your account",
     href: link,
@@ -67,7 +68,10 @@ function renderReminder(guest, link) {
     subject: "Your Foresight Atlas invite",
     preheader: "Your sign-in link is still good.",
     title: "Your invite is still here",
-    body: named(guest.firstName, "your invite to the community layer is still open."),
+    body: [
+      named(guest.firstName, "your invite to the community layer is still open."),
+      atlasBetaLine(),
+    ].join("\n\n"),
     button: "Create your account",
     href: link,
     note: "The link works for 14 days. If you already created an account, you can ignore this.",
@@ -108,7 +112,10 @@ function renderExistingSignIn(fullName, link) {
     subject: "Sign in to Foresight Atlas",
     preheader: "This link opens the account you already have.",
     title: "Sign in",
-    body: name ? `Hi ${name}, ${sentence}` : sentence.charAt(0).toUpperCase() + sentence.slice(1),
+    body: [
+      name ? `Hi ${name}, ${sentence}` : sentence.charAt(0).toUpperCase() + sentence.slice(1),
+      atlasBetaLine(),
+    ].join("\n\n"),
     button: "Sign in",
     href: link,
     note: "It works for 14 days. If this was not you, you can ignore it.",

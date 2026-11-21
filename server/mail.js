@@ -145,6 +145,11 @@ function bodyHtml(body) {
     .join("");
 }
 
+/** One line on every claim: the atlas is unfinished, and the corner icon is how to say so. */
+function atlasBetaLine() {
+  return "The Atlas is in beta. You will notice a small icon in the bottom right. If you find a bug, or if there is a feature you wish were here, please let us know.";
+}
+
 function givenName(fullName) {
   const name = String(fullName || "").trim();
   if (!name || name.includes("@")) return "";
@@ -261,7 +266,10 @@ function renderAccessEmail(kind, link, fullName) {
     subject: "Your Foresight Atlas link",
     preheader: "Set the password for your atlas account.",
     title: "Set your password",
-    body: withName(fullName, "this link sets the password for your atlas account."),
+      body: [
+        withName(fullName, "this link sets the password for your atlas account."),
+        atlasBetaLine(),
+      ].join("\n\n"),
     button: "Set password",
     href: link,
     note: "If you did not ask for it, you can ignore it.",
@@ -344,4 +352,5 @@ module.exports = {
   sendSignInLink,
   renderAccessEmail,
   renderAtlasEmail,
+  atlasBetaLine,
 };
