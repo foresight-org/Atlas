@@ -175,16 +175,16 @@ export function AssistantProfileProposal({
 
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
 
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {identity && changes ? (
           <Button
             type="button"
             onClick={save}
             disabled={saving}
-            className="min-h-[44px] sm:min-h-10"
+            className="w-full sm:w-auto sm:min-w-44"
           >
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-            Save this change
+            {saving ? <Loader2 className="animate-spin" /> : <Check />}
+            {saving ? "Saving" : "Save this change"}
           </Button>
         ) : null}
         <Button
@@ -192,7 +192,7 @@ export function AssistantProfileProposal({
           variant="outline"
           onClick={dismiss}
           disabled={saving}
-          className="min-h-[44px] sm:min-h-10"
+          className="w-full sm:w-auto"
         >
           Keep my profile
         </Button>

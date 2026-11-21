@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { ArrowLeft, Sparkles, CalendarDays, Users, ShieldCheck, UserCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, CalendarDays, Users, ShieldCheck, UserCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import foresightIconUrl from "../assets/Foresight_RGB_Icon_Black.png?url";
 import { NodeSlug, NodeEvent, RSVPStatus } from "../types/events";
 import { Person } from "../types";
@@ -588,7 +588,7 @@ export function NodeProgrammingPage({
 
             {filteredEvents.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-200 shadow p-12 sm:p-16 text-center">
-                <Sparkles className="size-8 text-gray-300 mx-auto mb-3" />
+                <CalendarDays className="size-8 text-gray-300 mx-auto mb-3" />
                 <p className="text-sm font-medium text-gray-500">
                   {selectedMonth === null
                     ? `No upcoming events in the next ${UPCOMING_DAYS} days`

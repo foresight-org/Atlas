@@ -3,7 +3,7 @@
  * Shown on person profiles as a second-layer discovery signal.
  */
 
-import { Sparkles } from "lucide-react";
+import { Users } from "lucide-react";
 import type { Person } from "../types";
 import { findFocusNeighbors } from "../utils/focusNeighbors";
 import { getEffectiveProfileImageUrl } from "../services/profileImageOverride";
@@ -33,7 +33,7 @@ export function FocusNeighbors({
       aria-label="Focus neighbors"
     >
       <h3 className="person-detail-section-title flex items-center gap-2 mb-3">
-        <Sparkles className="h-3.5 w-3.5 shrink-0" />
+        <Users className="h-3.5 w-3.5 shrink-0" />
         Focus neighbors
       </h3>
       <p className="text-xs text-gray-500 mb-3 leading-relaxed">

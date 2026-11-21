@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, Loader2, Search, Sparkles, UserPlus } from "lucide-react";
+import { ArrowLeft, Loader2, Search, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import type { Person } from "../types";
 import type { Identity } from "../services/identity";
@@ -261,7 +261,7 @@ function ExistingClaimForm({
       >
         <div className="border-b border-gray-200/80 px-6 py-8 sm:px-8" style={{ background: GRADIENT }}>
           <div className="flex size-14 items-center justify-center rounded-2xl bg-white/90 shadow-sm ring-1 ring-gray-200/80">
-            <Sparkles className="size-7 text-sky-500" aria-hidden />
+            <Search className="size-7 text-sky-700" aria-hidden />
           </div>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight text-gray-900">
             Search for your name

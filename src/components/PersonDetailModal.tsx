@@ -745,8 +745,9 @@ export function PersonDetailModal({
                       <span className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800">
                         {lockedPrimaryRole(editingPerson)}
                       </span>
-                      <div className="w-36">
+                      <div className="w-44">
                         <CohortYearField
+                          key={`${editingPerson.id}-${editingPerson.fellowshipCohortYear}`}
                           value={editingPerson.fellowshipCohortYear}
                           onChange={(year) => setEditingPerson({ ...editingPerson, fellowshipCohortYear: year })}
                         />

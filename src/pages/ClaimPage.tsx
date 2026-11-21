@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, KeyRound, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import foresightIconUrl from "../assets/Foresight_RGB_Icon_Black.png?url";
 import { FORESIGHT_ORG_URL } from "../constants/foresight";
@@ -389,7 +389,7 @@ export function ClaimPage({
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <Sparkles className="size-4" /> Set password &amp; sign in
+                  <KeyRound className="size-4" /> Set password &amp; sign in
                 </span>
               )}
             </Button>

@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check, MapPin, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, Check, Loader2, MapPin, Users } from "lucide-react";
 import { toast } from "sonner";
 import foresightIconUrl from "../assets/Foresight_RGB_Icon_Black.png?url";
 import { FORESIGHT_ORG_URL } from "../constants/foresight";
@@ -258,7 +258,7 @@ export function CheckInPage({
           {!statusLoaded || isSaving ? (
             <div className="flex min-h-[64px] items-center justify-center rounded-2xl border border-gray-200 bg-gray-50/90 px-5 py-4 text-sm text-gray-600 sm:min-h-[72px]">
               <span className="inline-flex items-center gap-2">
-                <Sparkles className="size-4 animate-pulse text-sky-500" />
+                <Loader2 className="size-4 animate-spin text-sky-700" />
                 {!statusLoaded
                   ? "Loading your check-in status…"
                   : "Checking you in…"}
@@ -282,7 +282,7 @@ export function CheckInPage({
               className="w-full min-h-[64px] rounded-2xl text-base font-semibold shadow-md sm:min-h-[72px] sm:text-lg"
             >
               <span className="inline-flex items-center gap-2">
-                <Sparkles className="size-4" />
+                <MapPin className="size-4" />
                 I&apos;m here today — check me in
               </span>
             </Button>

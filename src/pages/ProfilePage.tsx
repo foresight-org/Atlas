@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, KeyRound, Loader2, Link2, LogOut, Save, Sparkles, User, CheckCircle, AlertCircle, CalendarDays, EyeOff, Users } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, Link2, LogOut, Save, PenLine, User, CheckCircle, AlertCircle, CalendarDays, EyeOff, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Identity } from "../services/identity";
 import { createPerson, updatePerson } from "../services/database";
@@ -781,7 +781,7 @@ export function ProfilePage({
           <section className="rounded-3xl border border-gray-200 bg-white p-8 shadow">
             <div className="mx-auto max-w-xl">
               <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
-                <Sparkles className="size-6" />
+                <KeyRound className="size-6" />
               </div>
               <DirectoryLoginForm initialName={getLastSignedInName()} />
             </div>
@@ -1282,7 +1282,7 @@ export function ProfilePage({
 
               <ProfileSection
                 title="Details and public presence"
-                icon={<Sparkles className="size-4 text-sky-500" />}
+                icon={<PenLine className="size-4 text-sky-500" />}
               >
                 <Field label="Short tagline">
                   <Input
@@ -1640,13 +1640,13 @@ export function ProfilePage({
                 Download my graph
               </button>
             </div>
-            <div className="flex min-w-0 flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-4">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
               <Button
                 variant="outline"
                 onClick={onSignOut}
-                className="min-h-[48px] justify-center border-gray-300 px-6 font-medium sm:min-w-[10rem]"
+                className="w-full border-gray-300 px-6 font-medium sm:w-auto sm:min-w-40"
               >
-                <LogOut className="size-4" />
+                <LogOut />
                 Sign out
               </Button>
               <Button
@@ -1660,18 +1660,14 @@ export function ProfilePage({
                       ? "Save changes"
                       : "No changes to save"
                 }
-                className={`min-h-[48px] w-full justify-center px-6 font-medium sm:w-auto sm:min-w-[11rem] ${
+                className={`w-full px-6 font-medium sm:w-auto sm:min-w-44 ${
                   profileDirty && !identity.mustChangePassword
                     ? ""
                     : "border border-gray-200 bg-gray-100 text-gray-400 shadow-none hover:bg-gray-100"
                 }`}
               >
-                {isSaving ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Save className="size-4" />
-                )}
-                {isSaving ? "Saving…" : "Save changes"}
+                {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
+                {isSaving ? "Saving" : "Save changes"}
               </Button>
             </div>
             {identity.mustChangePassword ? (
