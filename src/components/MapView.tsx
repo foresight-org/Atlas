@@ -367,14 +367,24 @@ function markerDataFromCluster(
   };
 }
 
-/** Community list. A person in two areas appears in both. None go under one quiet heading. */
-function focusRoster(people: Person[]): Array<{ key: string; label: string; people: Person[] }> {
+/**
+ * Community list. One row per person.
+ * A selected focus puts them under that heading. Otherwise they sit under
+ * their first area. The card still shows every area they picked.
+ */
+function focusRoster(
+  people: Person[],
+  activeFocus: string[],
+): Array<{ key: string; label: string; people: Person[] }> {
   const buckets = new Map<string, Person[]>();
   for (const name of FOCUS_COLOR_ORDER) buckets.set(name, []);
   for (const person of people) {
     const tags = getPresetFocusTags(person.focusTags);
-    const names = tags.length > 0 ? tags : ["No focus area"];
-    for (const name of names) buckets.get(name)?.push(person);
+    const chosen =
+      tags.find((tag) => activeFocus.includes(tag)) ??
+      tags[0] ??
+      "No focus area";
+    buckets.get(chosen)?.push(person);
   }
   return FOCUS_COLOR_ORDER.flatMap((name) => {
     const group = buckets.get(name) ?? [];
@@ -759,6 +769,28 @@ export function MapView({
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   /** Filter section expanded state; collapse when user selects a map node so the person list is visible. */
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  /*
+   * A city selection used to freeze the sidebar on that pin's old roster.
+   * Changing a filter drops the city so the list and the map show the same people.
+   */
+  const filterSignature = filters
+    ? [
+        filters.search,
+        filters.programs.join("\0"),
+        filters.focusTags.join("\0"),
+        filters.nodes.join("\0"),
+        filters.cities.join("\0"),
+        String(filters.year ?? ""),
+        filters.communityFilter,
+      ].join("|")
+    : "";
+  const seenFilter = useRef(filterSignature);
+  useEffect(() => {
+    if (seenFilter.current === filterSignature) return;
+    seenFilter.current = filterSignature;
+    setSelectedMarker(null);
+    setSelectedMarkerFromList(false);
+  }, [filterSignature]);
   const isMobile = useIsMobile();
   const [isDesktopSplit, setIsDesktopSplit] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -1090,11 +1122,12 @@ export function MapView({
     [events],
   );
 
-  // People to show in sidebar: when a location is selected, only that location; otherwise all filtered.
-  // Always sorted alphabetically by name for a consistent, scannable list.
+  // People to show in sidebar: the same filtered set as the map.
+  // A selected city narrows that set further. It never brings back someone the filter removed.
   const sidebarPeople = useMemo(() => {
+    const allowed = new Set(filteredPeople.map((person) => person.id));
     const people = selectedMarker
-      ? selectedMarker.people.map((p) => p.person)
+      ? selectedMarker.people.map((entry) => entry.person).filter((person) => allowed.has(person.id))
       : filteredPeople;
     const deduped = new Map<string, Person>();
     people.forEach((person) => {
@@ -1220,7 +1253,7 @@ export function MapView({
         </p>
       ) : (
         (groupByFocus
-          ? focusRoster(sidebarPeople)
+          ? focusRoster(sidebarPeople, filters?.focusTags ?? [])
           : [{ key: "all", label: "", people: sidebarPeople }]
         ).map((section) => (
           <div key={section.key} className={section.label ? "space-y-3" : "contents"}>
