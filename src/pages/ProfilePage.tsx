@@ -1420,7 +1420,7 @@ export function ProfilePage({
                   <Button
                     type="button"
                     variant="outline"
-                    className="min-h-[44px] justify-center sm:w-auto"
+                    className="min-h-[44px] justify-center"
                     onClick={() => {
                       downloadMemberDataExport(draft);
                       toast.success("Download started", {
@@ -1433,7 +1433,7 @@ export function ProfilePage({
                   <Button
                     type="button"
                     variant="outline"
-                    className="min-h-[44px] justify-center sm:w-auto"
+                    className="min-h-[44px] justify-center"
                     asChild
                   >
                     <a href={atlasProfileRemovalMailto(draft.fullName || identity.fullName)}>
@@ -1644,7 +1644,7 @@ export function ProfilePage({
               <Button
                 variant="outline"
                 onClick={onSignOut}
-                className="w-full border-gray-300 px-6 font-medium sm:w-auto sm:min-w-40"
+                className="max-sm:w-full border-gray-300 px-6 font-medium sm:min-w-40"
               >
                 <LogOut />
                 Sign out
@@ -1660,7 +1660,7 @@ export function ProfilePage({
                       ? "Save changes"
                       : "No changes to save"
                 }
-                className={`w-full px-6 font-medium sm:w-auto sm:min-w-44 ${
+                className={`max-sm:w-full px-6 font-medium sm:min-w-44 ${
                   profileDirty && !identity.mustChangePassword
                     ? ""
                     : "border border-gray-200 bg-gray-100 text-gray-400 shadow-none hover:bg-gray-100"

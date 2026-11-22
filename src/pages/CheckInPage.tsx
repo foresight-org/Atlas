@@ -202,7 +202,7 @@ export function CheckInPage({
             Sign in to check in
           </h1>
           <div className="mt-6">
-            <Button size="lg" className="w-full sm:w-auto" onClick={onOpenProfile}>
+            <Button size="lg" className="max-sm:w-full" onClick={onOpenProfile}>
               Open profile sign-in
             </Button>
           </div>

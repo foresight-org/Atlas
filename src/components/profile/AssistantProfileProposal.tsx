@@ -181,7 +181,7 @@ export function AssistantProfileProposal({
             type="button"
             onClick={save}
             disabled={saving}
-            className="w-full sm:w-auto sm:min-w-44"
+            className="max-sm:w-full sm:min-w-44"
           >
             {saving ? <Loader2 className="animate-spin" /> : <Check />}
             {saving ? "Saving" : "Save this change"}
@@ -192,7 +192,7 @@ export function AssistantProfileProposal({
           variant="outline"
           onClick={dismiss}
           disabled={saving}
-          className="w-full sm:w-auto"
+          className="max-sm:w-full"
         >
           Keep my profile
         </Button>

@@ -40,20 +40,20 @@ export function AgentConnectPrompt() {
 
   return (
     <>
-      <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-sky-200/80 bg-white/80 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
+      <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-sky-200/80 bg-white/80 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-5">
+        <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-700">
-            <img src={foresightIconUrl} alt="" className="size-4 object-contain" aria-hidden />
-            Your agent
+            <img src={foresightIconUrl} alt="" className="size-4 shrink-0 object-contain" aria-hidden />
+            <span className="min-w-0">Your agent</span>
           </p>
-          <p className="mt-1 text-sm leading-5 text-neutral-800">
+          <p className="mt-1 max-w-prose text-sm leading-5 text-neutral-800">
             Use the Atlas from an agent you already have. You do not have to keep coming back to this page.
           </p>
         </div>
         <Button
           type="button"
           variant="outline"
-          className="w-full bg-white sm:w-auto"
+          className="max-sm:w-full bg-white"
           onClick={() => setOpen(true)}
         >
           Connect an agent
@@ -73,7 +73,7 @@ export function AgentConnectPrompt() {
             <code className="min-w-0 flex-1 break-all rounded-lg bg-neutral-50 px-2.5 py-2 text-[11px] text-neutral-800">
               {url}
             </code>
-            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => void copy()}>
+            <Button type="button" variant="outline" className="max-sm:w-full" onClick={() => void copy()}>
               {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
               {copied ? "Copied" : "Copy"}
             </Button>
