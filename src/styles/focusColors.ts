@@ -4,6 +4,8 @@
  * Someone who picks two areas adds one to each color.
  */
 
+import { getPresetFocusTags } from "../data/focusAreas";
+
 export const FOCUS_COLOR_ORDER = [
   "Secure AI",
   "Neurotechnology",
@@ -70,6 +72,22 @@ export function focusCountsFromProperties(properties: Record<string, unknown>): 
   for (const { key, label } of FOCUS_CLUSTER_KEYS) {
     const n = Number(properties[key]) || 0;
     if (n > 0) counts[label] = n;
+  }
+  return counts;
+}
+
+/**
+ * How a community pin is mixed. Someone in two areas counts once in each.
+ * Someone with none counts as "No focus area". The badge number stays the headcount.
+ */
+export function focusCountsForPeople(
+  people: Array<{ focusTags?: string[] | null }>,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const person of people) {
+    const tags = getPresetFocusTags(person.focusTags ?? []);
+    const names = tags.length > 0 ? tags : ["No focus area"];
+    for (const name of names) counts[name] = (counts[name] || 0) + 1;
   }
   return counts;
 }

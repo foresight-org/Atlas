@@ -30,6 +30,8 @@ interface InlineFiltersProps {
   onExpandedChange?: (expanded: boolean) => void;
   /** Rendered before the Filters toggle (e.g. mobile “Back to map”). */
   filterToggleStartSlot?: React.ReactNode;
+  /** Community layer. Focus is the filter. Program chips belong to the other layer. */
+  hidePrograms?: boolean;
 }
 
 import { PRESET_FOCUS_AREAS } from "../data/focusAreas";
@@ -56,6 +58,7 @@ export function InlineFilters({
   expanded: controlledExpanded,
   onExpandedChange,
   filterToggleStartSlot,
+  hidePrograms = false,
 }: InlineFiltersProps) {
   const [internalExpanded, setInternalExpanded] = useState(false);
   const isControlled = controlledExpanded !== undefined;
@@ -85,7 +88,7 @@ export function InlineFilters({
   };
 
   const activeCount =
-    filters.programs.length +
+    (hidePrograms ? 0 : filters.programs.length) +
     filters.focusTags.length +
     (filters.year !== null ? 1 : 0) +
     (filters.communityFilter !== "all" ? 1 : 0);
@@ -192,7 +195,7 @@ export function InlineFilters({
       {/* Expanded quick-filters */}
       {expanded && (
         <div className="space-y-3 pt-1 pb-1">
-          {/* Programs */}
+          {hidePrograms ? null : (
           <QuickRow label="Program">
             {PROGRAMS.map((p) => (
               <TogglePill key={p} active={filters.programs.includes(p)} activeStyle={{ background: getRoleGradient(p), border: "1px solid rgba(255,255,255,0.5)" }} onClick={() => toggleProgram(p)}>
@@ -200,6 +203,7 @@ export function InlineFilters({
               </TogglePill>
             ))}
           </QuickRow>
+          )}
 
           {/* Focus */}
           <QuickRow label="Focus">

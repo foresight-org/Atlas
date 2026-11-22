@@ -428,6 +428,14 @@ export default function App() {
   // ── Filter logic ───────────────────────────────────────────────────
 
   const filteredPeople = useMemo(() => {
+    const viewer = identity
+      ? people.find((candidate) => candidate.id === identity.personId) ??
+        (selfPerson?.id === identity.personId ? selfPerson : null)
+      : null;
+    const viewerRole = getPrimaryRoleType(viewer);
+    const viewingCommunity =
+      viewerRole === "Community" ||
+      (viewerRole === "Foresight Team" && layerChoice === "community");
     const matched = people.filter((person) => {
       const effectiveYear = filters.year ?? currentCalendarYear;
       const cohortYear = person.fellowshipCohortYear;
@@ -458,7 +466,11 @@ export default function App() {
         if (!match) return false;
       }
 
-      if (filters.programs.length > 0 && !filters.programs.includes(getPrimaryRoleType(person))) return false;
+      if (
+        !viewingCommunity &&
+        filters.programs.length > 0 &&
+        !filters.programs.includes(getPrimaryRoleType(person))
+      ) return false;
       if (filters.focusTags.length > 0) {
         const personPresetTags = getPresetFocusTags(person.focusTags);
         if (!filters.focusTags.some((t) => personPresetTags.includes(t))) return false;
@@ -475,7 +487,7 @@ export default function App() {
     });
 
     return matched.sort((a, b) => a.fullName.localeCompare(b.fullName));
-  }, [people, travelWindows, filters, currentCalendarYear]);
+  }, [people, travelWindows, filters, currentCalendarYear, identity, selfPerson, layerChoice]);
 
   const filteredTravelWindows = useMemo(() => {
     const ids = new Set(filteredPeople.map((p) => p.id));
@@ -959,7 +971,8 @@ export default function App() {
           showNodes
           nodeMemory={!communityLayer}
           onOpenNodeProgramming={(slug) => navigate(`/${slug}`)}
-          rosterTitle={communityLayer ? "Team and community" : undefined}
+          rosterTitle={communityLayer ? "Community" : undefined}
+          groupByFocus={communityLayer}
         />
       </div>
     </>

@@ -16,7 +16,7 @@ New here? **[CONTRIBUTING.md](CONTRIBUTING.md)** · **[docs/README.md](docs/READ
 
 ## What it does
 
-- **Map** — One marker per person at their profile location; search and filters; travel and RSVPs as card context.
+- **Map** — One marker per person at their profile location; search and filters; travel and RSVPs as card context. The programs layer colors pins by role. The community layer colors pins and groups the list by focus area. Someone with no focus area stays in the list as “No focus area yet.”
 - **Programming** — Per-node calendars with sheet + live Luma merge, RSVPs, and check-ins.
 - **Open to meet** — Members with booking links (`/open-to-meet`); book or invite from Connections too.
 - **Directory** — Claim / magic-link onboarding; member sessions are sheet-backed.

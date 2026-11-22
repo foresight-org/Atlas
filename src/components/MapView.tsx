@@ -18,6 +18,8 @@ import { Person, TravelWindow, RoleType, Filters } from "../types";
 import type { NodeEvent } from "../types/events";
 import { getPersonRSVPs } from "../services/rsvp";
 import { FellowCard, type AttendingEvent } from "./FellowCard";
+import { getPresetFocusTags } from "../data/focusAreas";
+import { FOCUS_COLOR_ORDER, focusCountsForPeople, getFocusGradient } from "../styles/focusColors";
 import { InlineFilters } from "./InlineFilters";
 import { ArrowLeft, Menu, Users, X } from "lucide-react";
 import { Button } from "./ui/button";
@@ -85,8 +87,13 @@ interface MapViewProps {
    */
   nodeMemory?: boolean;
   onOpenNodeProgramming?: (slug: "berlin" | "sf") => void;
-  /** Sidebar heading. Community is the team and community accounts. */
+  /** Sidebar heading. The community layer is one roster, grouped by focus. */
   rosterTitle?: string;
+  /**
+   * Community layer. Pins and the list use focus areas.
+   * The programs layer leaves this off and stays colored by role.
+   */
+  groupByFocus?: boolean;
 }
 
 /**
@@ -101,6 +108,8 @@ interface MarkerData {
   people: Array<{
     person: Person;
   }>;
+  /** Set on the community layer. The pin mixes these colors instead of roles. */
+  focusCounts?: Record<string, number>;
 }
 
 // Helper to create a coordinate-based key for grouping markers
@@ -268,10 +277,18 @@ const createCustomIcon = (
   communityStatus: CommunityStatus,
   isSelected: boolean,
   foresightIcon: string,
+  focusCounts?: Record<string, number>,
 ) => {
   const iconSize = isSelected ? 48 : 40;
   return divIcon({
-    html: locationPinHtml({ count, roleTypes, communityStatus, isSelected, iconUrl: foresightIcon }),
+    html: locationPinHtml({
+      count,
+      roleTypes,
+      communityStatus,
+      isSelected,
+      iconUrl: foresightIcon,
+      focusCounts,
+    }),
     className: "custom-marker-icon",
     iconSize: [iconSize, iconSize],
     iconAnchor: [iconSize / 2, iconSize],
@@ -337,11 +354,36 @@ function markerDataFromCluster(
       country = entry.country;
     }
   }
-  return dedupeMarkerEntries({
+  const merged = dedupeMarkerEntries({
     city,
     country,
     coordinates: { lat: lat / n, lng: lng / n },
     people,
+  });
+  if (!children.some((child) => child.__markerData?.focusCounts)) return merged;
+  return {
+    ...merged,
+    focusCounts: focusCountsForPeople(merged.people.map((entry) => entry.person)),
+  };
+}
+
+/** Community list. A person in two areas appears in both. None go under one quiet heading. */
+function focusRoster(people: Person[]): Array<{ key: string; label: string; people: Person[] }> {
+  const buckets = new Map<string, Person[]>();
+  for (const name of FOCUS_COLOR_ORDER) buckets.set(name, []);
+  for (const person of people) {
+    const tags = getPresetFocusTags(person.focusTags);
+    const names = tags.length > 0 ? tags : ["No focus area"];
+    for (const name of names) buckets.get(name)?.push(person);
+  }
+  return FOCUS_COLOR_ORDER.flatMap((name) => {
+    const group = buckets.get(name) ?? [];
+    if (group.length === 0) return [];
+    return [{
+      key: name,
+      label: name === "No focus area" ? "No focus area yet" : name,
+      people: group,
+    }];
   });
 }
 
@@ -353,11 +395,15 @@ function dedupeMarkerEntries(marker: MarkerData): MarkerData {
     }
   });
 
+  const people = Array.from(seen.values()).sort((a, b) =>
+    a.person.fullName.localeCompare(b.person.fullName),
+  );
   return {
     ...marker,
-    people: Array.from(seen.values()).sort((a, b) =>
-      a.person.fullName.localeCompare(b.person.fullName),
-    ),
+    people,
+    ...(marker.focusCounts
+      ? { focusCounts: focusCountsForPeople(people.map((entry) => entry.person)) }
+      : {}),
   };
 }
 
@@ -406,6 +452,7 @@ function ImperativeMarkerClusters({
         getCommunityStatus(marker.people.map((entry) => entry.person)),
         false,
         foresightIcon,
+        marker.focusCounts,
       );
       const latLng: L.LatLngExpression = [marker.coordinates.lat, marker.coordinates.lng];
       const content = document.createElement("div");
@@ -484,9 +531,23 @@ function ImperativeMarkerClusters({
         const count = new Set(clusterPeople.map((person) => person.id)).size || cluster.getChildCount();
         const communityStatus = getCommunityStatus(clusterPeople);
         const sizeClass = count < 10 ? "small" : count < 100 ? "medium" : "large";
-        // Single circle: role-based segments (conic gradient for multiple roles) with count centered. No inner circle.
+        const focusCounts: Record<string, number> = {};
+        let byFocus = false;
+        cluster.getAllChildMarkers().forEach((marker) => {
+          const counts = (marker as MarkerWithRoles).__markerData?.focusCounts;
+          if (!counts) return;
+          byFocus = true;
+          for (const [label, n] of Object.entries(counts)) {
+            focusCounts[label] = (focusCounts[label] || 0) + n;
+          }
+        });
         return L.divIcon({
-          html: clusterBadgeHtml({ count, roleTypes: allRoles, communityStatus }),
+          html: clusterBadgeHtml({
+            count,
+            roleTypes: allRoles,
+            communityStatus,
+            ...(byFocus ? { focusCounts } : {}),
+          }),
           className: `marker-cluster marker-cluster-${sizeClass} marker-cluster-role`,
           iconSize: L.point(40, 40),
           iconAnchor: L.point(20, 20),
@@ -592,6 +653,7 @@ function ImperativeMarkerClusters({
         getCommunityStatus(marker.people.map((entry) => entry.person)),
         false,
         foresightIcon,
+        marker.focusCounts,
       );
       const latLng: L.LatLngExpression = [marker.coordinates.lat, marker.coordinates.lng];
       const content = document.createElement("div");
@@ -673,6 +735,7 @@ export function MapView({
   nodeMemory = true,
   onOpenNodeProgramming,
   rosterTitle = "Grantees, Fellows, Nodees & Alumni",
+  groupByFocus = false,
 }: MapViewProps) {
   const [globeAvailable] = useState(() => GLOBE_MAP_ENABLED && supportsWebGL());
   const [projection, setProjection] = useState<MapProjection>(() =>
@@ -954,6 +1017,7 @@ export function MapView({
           country: displayCountry,
           coordinates,
           people: [],
+          ...(groupByFocus ? { focusCounts: {} } : {}),
         });
       } else if (geocoded) {
         const existingMarker = markerMap.get(coordKey)!;
@@ -964,7 +1028,7 @@ export function MapView({
     });
 
     return Array.from(markerMap.values()).map(dedupeMarkerEntries);
-  }, [filteredPeople, geocodedCities, forwardGeocodedCoordinates]);
+  }, [filteredPeople, geocodedCities, forwardGeocodedCoordinates, groupByFocus]);
 
   /*
    * Desktop sidebar hover → fly the map to that person's pin.
@@ -1155,9 +1219,27 @@ export function MapView({
             : "No people match your filters. Try changing search, year, or filter options."}
         </p>
       ) : (
-        sidebarPeople.map((person) => (
+        (groupByFocus
+          ? focusRoster(sidebarPeople)
+          : [{ key: "all", label: "", people: sidebarPeople }]
+        ).map((section) => (
+          <div key={section.key} className={section.label ? "space-y-3" : "contents"}>
+            {section.label ? (
+              <div className="flex items-center gap-2 px-0.5 pt-1">
+                <span
+                  className="size-2.5 shrink-0 rounded-full ring-1 ring-black/10"
+                  style={{ background: getFocusGradient(section.key) }}
+                  aria-hidden
+                />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                  {section.label}
+                </h3>
+                <span className="text-[11px] tabular-nums text-gray-400">{section.people.length}</span>
+              </div>
+            ) : null}
+            {section.people.map((person) => (
           <div
-            key={person.id}
+            key={`${section.key}-${person.id}`}
             ref={(el) => {
               personRefs.current[person.id] = el;
             }}
@@ -1166,6 +1248,7 @@ export function MapView({
               person={person}
               nextTravel={getNextTravel(person.id)}
               attendingEvents={getAttendingEvents(person.id)}
+              byFocus={groupByFocus}
               onSelect={() => {
                 const personMarker = markers.find((m) => m.people.some((p) => p.person.id === person.id));
                 if (personMarker) {
@@ -1190,6 +1273,8 @@ export function MapView({
                       )
               }
             />
+          </div>
+            ))}
           </div>
         ))
       )}
@@ -1473,6 +1558,7 @@ export function MapView({
                   resultLabel={listFilterResultLabel}
                   expanded={filtersExpanded}
                   onExpandedChange={setFiltersExpanded}
+                  hidePrograms={groupByFocus}
                 />
               )}
             </div>
@@ -1559,6 +1645,7 @@ export function MapView({
                   resultLabel={listFilterResultLabel}
                   expanded={filtersExpanded}
                   onExpandedChange={setFiltersExpanded}
+                  hidePrograms={groupByFocus}
                   filterToggleStartSlot={
                     <Button
                       type="button"

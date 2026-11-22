@@ -35,6 +35,8 @@ interface FellowCardProps {
   /** Desktop map preview — parent flies to this person's pin while hovering. */
   onHoverStart?: () => void;
   onHoverEnd?: () => void;
+  /** Community layer. The card is a focus area, not a Team or Community role. */
+  byFocus?: boolean;
 }
 
 export function FellowCard({
@@ -46,6 +48,7 @@ export function FellowCard({
   isHighlighted,
   onHoverStart,
   onHoverEnd,
+  byFocus = false,
 }: FellowCardProps) {
   const handleCardClick = () => (onHighlight ?? onSelect)?.();
   const detailsSummary =
@@ -104,6 +107,7 @@ export function FellowCard({
             <div className="min-w-0 flex-1">
             <h3 className="text-gray-900 font-heading">{person.fullName}</h3>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {byFocus ? null : (
               <span
                 className={cn(
                   "text-xs px-3 py-1.5 rounded-full font-medium",
@@ -112,6 +116,7 @@ export function FellowCard({
               >
                 {getPrimaryRoleType(person)}
               </span>
+              )}
               {effectiveIsAlumni(person) && (
                 <Badge variant="alumni" className="text-xs">
                   Alumni

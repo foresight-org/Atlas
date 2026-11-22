@@ -8,6 +8,7 @@
 import { Person, RoleType } from "../../types";
 import { ROLE_COLORS, getRoleGradient, getRoleTextColor } from "../../styles/roleColors";
 import { focusColor, focusMixBackground, FOCUS_COLOR_ORDER } from "../../styles/focusColors";
+import { getPresetFocusTags } from "../../data/focusAreas";
 import { effectiveIsAlumni } from "../../utils/cohortLabel";
 
 export interface PinLocation {
@@ -252,24 +253,39 @@ function buildFocusShowcasePopupHtml(marker: PinLocation): string {
   </div>`;
 }
 
+function focusChips(person: Person): string {
+  const tags = getPresetFocusTags(person.focusTags);
+  const names = tags.length > 0 ? tags : ["No focus area"];
+  return names
+    .map((name) => {
+      const color = focusColor(name);
+      const label = name === "No focus area" ? "No focus area yet" : name;
+      const style = `background:linear-gradient(135deg, ${color.start} 0%, ${color.end} 100%);color:${color.text}`;
+      return `<span class="text-[11px] px-1.5 py-0.5 rounded font-medium shrink-0" style="${style}">${escapeHtml(label)}</span>`;
+    })
+    .join("");
+}
+
 /** Popup body: place name, then a scrollable list of people at that pin. */
 export function buildPopupHtml(marker: PinLocation): string {
   const cityCountry = escapeHtml(marker.country ? `${marker.city}, ${marker.country}` : marker.city);
   const count = marker.people.length;
   const countLabel = count === 1 ? "1 person" : `${count} people`;
+  const byFocus = Boolean(marker.focusCounts);
   const rows = marker.people
     .map(({ person }) => {
       const name = escapeHtml(person.fullName);
-      const roleGradient = getRoleGradient(person.roleType);
-      const roleStyle = `background:${roleGradient};color:${getRoleTextColor(person.roleType)}`;
       const alumni = effectiveIsAlumni(person)
         ? '<span class="text-[11px] px-1.5 py-0.5 rounded font-medium text-slate-50 shrink-0" style="background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); border: 1px solid rgba(100,116,139,0.4)">Alumni</span>'
         : '<span class="text-[11px] px-1.5 py-0.5 rounded font-medium bg-emerald-50 text-emerald-700 shrink-0">Current</span>';
+      const label = byFocus
+        ? focusChips(person)
+        : `<span class="text-[11px] px-1.5 py-0.5 rounded font-medium shrink-0" style="background:${getRoleGradient(person.roleType)};color:${getRoleTextColor(person.roleType)}">${escapeHtml(person.roleType)}</span>`;
       return `<button type="button" class="map-node-popup__person w-full text-left px-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 active:bg-gray-100 transition-colors min-h-[44px] sm:min-h-[40px] flex flex-col justify-center gap-1 cursor-pointer" data-person-id="${escapeHtml(person.id)}">
         <span class="text-sm font-medium text-gray-900 truncate">${name}</span>
         <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="text-[11px] px-1.5 py-0.5 rounded font-medium shrink-0" style="${roleStyle}">${escapeHtml(person.roleType)}</span>
-          ${alumni}
+          ${label}
+          ${byFocus ? (effectiveIsAlumni(person) ? alumni : "") : alumni}
         </div>
       </button>`;
     })
